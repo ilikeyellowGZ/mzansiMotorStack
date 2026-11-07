@@ -216,6 +216,43 @@ export async function submitOnboarding(
   };
 }
 
+export async function startPaystackCheckout(onboardingRequestId: string) {
+  const { data, error } = await getProductionClient().functions.invoke("paystack-checkout", {
+    body: { onboardingRequestId },
+  });
+  if (error) throw await edgeFunctionError(error);
+  if (!data?.checkoutUrl) throw new Error("Paystack did not return a checkout link.");
+  return data as { checkoutUrl: string; reference: string };
+}
+
+export async function verifyPaystackPayment(reference: string) {
+  const { data, error } = await getProductionClient().functions.invoke("paystack-verify", {
+    body: { reference },
+  });
+  if (error) throw await edgeFunctionError(error);
+  return data as {
+    status: "paid" | "processing" | "failed" | "pending";
+    id?: string;
+    requestStatus?: string;
+    currency?: "ZAR";
+    dueTodayMinor?: number;
+    setupFeeMinor?: number;
+    installments?: number;
+    setupScheduleMinor?: number[];
+  };
+}
+
+async function edgeFunctionError(error: Error) {
+  const response = (error as Error & { context?: Response }).context;
+  if (response instanceof Response) {
+    try {
+      const body = await response.clone().json();
+      if (typeof body?.error === "string") return new Error(body.error);
+    } catch { /* Keep the Supabase function error as the fallback. */ }
+  }
+  return error;
+}
+
 export async function signIn(email: string, password: string) {
   const client = getProductionClient();
   return client.auth.signInWithPassword({ email, password });

@@ -38,6 +38,8 @@ import {
   registerOwner,
   saveOnboardingDraft,
   submitOnboarding,
+  startPaystackCheckout,
+  verifyPaystackPayment,
   type SubmitRequestResult,
 } from "../lib/onboardingRepository";
 
@@ -451,6 +453,8 @@ export function OnboardingWizard({
   onSubmitted: (name: string) => void;
 }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const paymentReference = searchParams.get("reference") ?? searchParams.get("trxref");
   const [answers, setAnswers] = useState<OnboardingAnswers>(emptyAnswers);
   const [password, setPassword] = useState("");
   const [step, setStep] = useState(1);
@@ -507,6 +511,44 @@ export function OnboardingWizard({
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (loading || !userReady || !paymentReference || submitted) return;
+    let active = true;
+    setBusy(true);
+    setError("");
+    void verifyPaystackPayment(paymentReference)
+      .then(async (result) => {
+        if (!active) return;
+        if (result.status === "paid" && result.id) {
+          const paidRequest: SubmitRequestResult = {
+            id: result.id,
+            status: result.requestStatus ?? "active",
+            currency: result.currency ?? "ZAR",
+            dueTodayMinor: result.dueTodayMinor ?? 0,
+            setupFeeMinor: result.setupFeeMinor ?? 0,
+            installments: result.installments ?? 1,
+            setupScheduleMinor: result.setupScheduleMinor ?? [],
+          };
+          setSubmitted(paidRequest);
+          setStep(7);
+          await saveOnboardingDraft({ currentStep: 7, answers, submittedRequestId: result.id });
+          navigate("/start", { replace: true });
+          return;
+        }
+        setError(result.status === "processing"
+          ? "Paystack is confirming your payment. Refresh this page in a moment."
+          : "The payment was not completed. Review your quote and try checkout again.");
+        navigate("/start", { replace: true });
+      })
+      .catch((reason) => {
+        if (active) setError(reason instanceof Error ? reason.message : "We couldn’t verify the payment yet.");
+      })
+      .finally(() => {
+        if (active) setBusy(false);
+      });
+    return () => { active = false; };
+  }, [answers, loading, navigate, paymentReference, submitted, userReady]);
 
   useEffect(() => {
     if (loading || step < 2 || !userReady || submitted) return;
@@ -641,7 +683,12 @@ export function OnboardingWizard({
         answers,
         submittedRequestId: result.id,
       });
-      setSubmitted(result);
+      if (isPreviewMode) {
+        setSubmitted(result);
+      } else {
+        const checkout = await startPaystackCheckout(result.id);
+        window.location.assign(checkout.checkoutUrl);
+      }
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -712,17 +759,17 @@ export function OnboardingWizard({
           </div>
           <div className="eyebrow">
             <span className="eyebrow-dot" />{" "}
-            {isPreviewMode ? "PREVIEW COMPLETE" : "SETUP REQUEST SAVED"}
+            {isPreviewMode ? "PREVIEW COMPLETE" : "PAYMENT VERIFIED"}
           </div>
           <h1>
             {isPreviewMode
               ? "Your sample setup is ready."
-              : "Your dealership setup is underway."}
+              : "Your payment is confirmed."}
           </h1>
           <p>
             {isPreviewMode
               ? "This demo stored a draft only in this browser session. No account, payment or service request was created."
-              : "Your onboarding request is saved. No payment was taken, no paid access was enabled, and any meeting shown below is only requested—not confirmed."}
+              : "Paystack verified your first charge and your recurring subscription is set up. We’ll begin activation from the verified payment record."}
           </p>
           <div className="done-request-summary">
             <span>
@@ -733,9 +780,9 @@ export function OnboardingWizard({
             </span>
             <b>
               {formatMoney(submitted.dueTodayMinor)}{" "}
-              <small>proposed amount due, before final tax treatment</small>
+                <small>paid today</small>
             </b>
-            <span>Setup request · {submitted.status.replaceAll("_", " ")}</span>
+            <span>Payment status · {submitted.status.replaceAll("_", " ")}</span>
           </div>
           <div className="done-checklist">
             <b>What happens next</b>
@@ -749,8 +796,7 @@ export function OnboardingWizard({
               </span>
             )}
             <span>
-              <Clock3 size={14} /> Billing and payment setup still required
-              before activation
+              <Check size={14} /> Paystack card subscription verified
             </span>
             <span>
               <CircleHelp size={14} /> Secure record upload will be available
@@ -1524,9 +1570,9 @@ export function OnboardingWizard({
                 </p>
               )}
               <p className="quote-pending">
-                VAT treatment, AI/messaging allowances and payment provider are
-                not configured. This is a proposed subtotal, not a final payable
-                quote. No payment or service activation is available yet.
+                Paystack is selected for checkout. This subtotal becomes payable
+                after the final tax treatment is configured. AI and messaging
+                allowances will be confirmed separately.
               </p>
             </div>
           )}
@@ -1769,23 +1815,24 @@ export function OnboardingWizard({
             </ReviewSection>
           )}
           <div className="final-amount">
-            <span>PROPOSED AMOUNT DUE AT ACTIVATION</span>
+            <span>CHARGE DUE TODAY</span>
             <strong>{formatMoney(quote.dueToday)}</strong>
             <small>
-              VAT treatment is not configured. Final payable total and billing
-              dates are not yet available.
+              VAT treatment must be configured before checkout can proceed.
             </small>
             <small>
-              Annual billing is charged upfront. Setup instalments are separate
-              and do not change the subscription renewal.
+              The subscription renews automatically monthly or annually. Any
+              remaining setup instalments are charged monthly and do not change
+              the subscription renewal date.
             </small>
           </div>
           <label className="consent-check final-confirm">
             <input type="checkbox" required />
             <span>
-              I have reviewed my selections and ask MzansiMotorStack to prepare
-              this setup request. This does not authorise a charge or activate a
-              paid subscription.
+              I authorize Paystack to charge the amount shown today and to set
+              up recurring card payments for the selected subscription. If I
+              chose three setup instalments, I also authorize the two remaining
+              monthly instalments shown above.
             </span>
           </label>
           {error && (
@@ -1804,17 +1851,19 @@ export function OnboardingWizard({
             </WizardButton>
             <WizardButton type="submit" disabled={busy}>
               {busy ? (
-                "Saving request…"
+                "Opening secure checkout…"
               ) : (
                 <>
-                  Submit setup request <ArrowRight size={15} />
+                  Continue to Paystack <ArrowRight size={15} />
                 </>
               )}
             </WizardButton>
           </div>
           <p className="auth-legal">
-            No payment provider is connected. No money will be taken and no
-            service work will start from this request.
+            Paystack checkout will open in a secure window. Your card details
+            are entered on Paystack, and recurring charges start on the selected
+            billing schedule. Checkout remains unavailable until the final tax
+            treatment is configured.
           </p>
         </form>
       )}
@@ -1853,7 +1902,7 @@ const stepDescriptions = [
   "Choose how you’d like help moving your records and team across.",
   "Compare the plans and review the proposed subscription and setup amounts.",
   "Share a preferred time. We’ll confirm it before any appointment is booked.",
-  "Review the scope and totals before you submit a non-payment setup request.",
+  "Review the scope and payment schedule before continuing to Paystack checkout.",
 ];
 
 function websiteSummary(answers: OnboardingAnswers) {

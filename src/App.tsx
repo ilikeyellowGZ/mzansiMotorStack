@@ -1116,6 +1116,7 @@ type OnboardingRequestSummary = {
   plan_code: string;
   billing_interval: string;
   status: string;
+  payment_status: string;
   subscription_amount_minor: number;
   due_today_minor: number;
   setup_fee_minor: number;
@@ -1164,7 +1165,7 @@ function AppShell({ workspace, preview = false }: { workspace: Workspace | null;
         const organization = organizationResult.data;
         setLiveWorkspace({ name: organization.name, email: "", branch: `${organization.city}, ${organization.province}` });
         const [requestResult, servicesResult, appointmentResult] = await Promise.all([
-          supabase.from("onboarding_requests").select("plan_code,billing_interval,status,subscription_amount_minor,due_today_minor,setup_fee_minor,setup_installments,setup_schedule_minor,tax_status").eq("organization_id", organization.id).maybeSingle(),
+          supabase.from("onboarding_requests").select("plan_code,billing_interval,status,payment_status,subscription_amount_minor,due_today_minor,setup_fee_minor,setup_installments,setup_schedule_minor,tax_status").eq("organization_id", organization.id).maybeSingle(),
           supabase.from("service_requests").select("service_code,status").eq("organization_id", organization.id),
           supabase.from("appointment_requests").select("status").eq("organization_id", organization.id).maybeSingle(),
         ]);
@@ -1399,7 +1400,7 @@ function ProductionWorkspaceHome({ workspace, request, services, appointmentStat
   return <>
     <section className="panel production-status-panel">
       <div className="production-status-head"><span className="production-status-icon"><Building2 size={18} /></span><span><small>YOUR DEALERSHIP</small><b>{workspace.name}</b><em>{workspace.branch}</em></span><span className="pending-pill">{request?.status?.replaceAll("_", " ") || "Setup in progress"}</span></div>
-      <div className="production-payment-note"><LockKeyhole size={16} /><span><b>No subscription is active yet.</b><small>Billing terms and payment services must be configured before this plan can be charged or activated. No payment was taken.</small></span></div>
+      <div className="production-payment-note"><LockKeyhole size={16} /><span><b>{request?.payment_status === "paid" ? "Paystack payment verified." : request?.payment_status === "pending" ? "Subscription payment is pending." : "Subscription payment has not started."}</b><small>{request?.payment_status === "paid" ? "Your recurring subscription is active. Service setup still follows the approved scope and schedule." : request?.payment_status === "pending" ? "Complete Paystack checkout to activate this plan." : "Complete Paystack checkout after billing terms and inclusive tax treatment are configured."}</small></span></div>
       {request && <div className="live-plan-summary"><div><small>REQUESTED PLAN</small><b>{planName} · {request.billing_interval === "annual" ? "Annual upfront" : "Monthly"}</b></div><div><small>PROPOSED SUBSCRIPTION</small><b>{formatCurrencyMinor(request.subscription_amount_minor)}{request.billing_interval === "monthly" ? " / month" : " / year"}</b></div><div><small>SETUP SERVICE</small><b>{formatCurrencyMinor(request.setup_fee_minor)}{request.setup_installments === 3 ? " · 3 instalments" : ""}</b></div></div>}
       {request?.tax_status === "configuration_required" && <p className="quote-pending">VAT treatment is still being configured, so the displayed prices are not a final payable quote.</p>}
     </section>

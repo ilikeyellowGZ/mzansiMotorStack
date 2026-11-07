@@ -11,8 +11,7 @@ alter table public.organizations
   add column time_zone text not null default 'Africa/Johannesburg',
   add column business_hours jsonb not null default '{}'::jsonb check (jsonb_typeof(business_hours) = 'object'),
   add column default_lead_assignment_user_id uuid,
-  add column default_follow_up_days smallint not null default 1 check (default_follow_up_days between 0 and 90),
-  add column updated_at timestamptz not null default now();
+  add column default_follow_up_days smallint not null default 1 check (default_follow_up_days between 0 and 90);
 
 alter table public.dealership_locations
   add column contact_phone text,
@@ -848,29 +847,29 @@ on conflict (id) do update set public = false;
 create policy dealership_storage_select on storage.objects for select to authenticated
   using (
     bucket_id in ('vehicle-media', 'sales-documents', 'customer-imports', 'service-deliverables')
-    and case when split_part(name, '/', 1) ~* '^[0-9a-f-]{36}$'
+    and case when split_part(name, '/', 1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
       then public.is_organization_member(split_part(name, '/', 1)::uuid) else false end
   );
 create policy dealership_storage_insert on storage.objects for insert to authenticated
   with check (
     bucket_id in ('vehicle-media', 'sales-documents', 'customer-imports', 'service-deliverables')
-    and case when split_part(name, '/', 1) ~* '^[0-9a-f-]{36}$'
+    and case when split_part(name, '/', 1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
       then public.is_organization_member(split_part(name, '/', 1)::uuid) else false end
   );
 create policy dealership_storage_update on storage.objects for update to authenticated
   using (
     bucket_id in ('vehicle-media', 'sales-documents', 'customer-imports', 'service-deliverables')
-    and case when split_part(name, '/', 1) ~* '^[0-9a-f-]{36}$'
+    and case when split_part(name, '/', 1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
       then public.is_organization_member(split_part(name, '/', 1)::uuid) else false end
   ) with check (
     bucket_id in ('vehicle-media', 'sales-documents', 'customer-imports', 'service-deliverables')
-    and case when split_part(name, '/', 1) ~* '^[0-9a-f-]{36}$'
+    and case when split_part(name, '/', 1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
       then public.is_organization_member(split_part(name, '/', 1)::uuid) else false end
   );
 create policy dealership_storage_delete on storage.objects for delete to authenticated
   using (
     bucket_id in ('vehicle-media', 'sales-documents', 'customer-imports', 'service-deliverables')
-    and case when split_part(name, '/', 1) ~* '^[0-9a-f-]{36}$'
+    and case when split_part(name, '/', 1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
       then public.is_organization_member(split_part(name, '/', 1)::uuid) else false end
   );
 
