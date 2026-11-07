@@ -1,0 +1,181 @@
+- generic [ref=f5e1]:
+  - generic [ref=f5e3]:
+    - banner [ref=f5e4]:
+      - generic [ref=f5e5]:
+        - link "Accueil" [ref=f5e7] [cursor=pointer]:
+          - /url: " https://www.caeli-energie.com/ "
+        - generic [ref=f5e29]: fr
+      - generic [ref=f5e40]:
+        - link "Caeli One" [ref=f5e42] [cursor=pointer]:
+          - /url: https://www.caeli-energie.com/produit/caeli-one/
+        - generic [ref=f5e43]: Révolution Caeli
+        - link "Simuler mon projet" [ref=f5e49] [cursor=pointer]:
+          - /url: https://www.caeli-energie.com/simuler-mon-projet/
+        - link "FAQ Pro" [ref=f5e51] [cursor=pointer]:
+          - /url: https://www.caeli-energie.com/faq-pro/
+        - link "Nous rejoindre" [ref=f5e53] [cursor=pointer]:
+          - /url: https://www.caeli-energie.com/nous-rejoindre/
+      - link [ref=f5e55] [cursor=pointer]:
+        - /url: https://www.caeli-energie.com/contact/
+    - document [ref=f5e65]:
+      - generic [ref=f5e67]:
+        - generic [ref=f5e69]:
+          - generic [ref=f5e70]:
+            - heading "La révolution fraîche" [level=1] [ref=f5e71]:
+              - generic [ref=f5e72]:
+                - generic [ref=f5e73]: L
+                - generic [ref=f5e74]: a
+              - generic [ref=f5e75]:
+                - generic [ref=f5e76]: r
+                - generic [ref=f5e77]: é
+                - generic [ref=f5e78]: v
+                - generic [ref=f5e79]: o
+                - generic [ref=f5e80]: l
+                - generic [ref=f5e81]: u
+                - generic [ref=f5e82]: t
+                - generic [ref=f5e83]: i
+                - generic [ref=f5e84]: o
+                - generic [ref=f5e85]: "n"
+              - generic [ref=f5e86]:
+                - generic [ref=f5e87]: f
+                - generic [ref=f5e88]: r
+                - generic [ref=f5e89]: a
+                - generic [ref=f5e90]: î
+                - generic [ref=f5e91]: c
+                - generic [ref=f5e92]: h
+                - generic [ref=f5e93]: e
+            - generic [ref=f5e94]: Chez CAELI ENERGIE, nous créons un monde dans lequel il est possible de rafraîchir sans réchauffer.
+          - generic [ref=f5e96]:
+            - generic [ref=f5e140]:
+              - img "Console shadow" [ref=f5e142]
+              - img "Console" [ref=f5e143]
+            - generic [ref=f5e145]:
+              - img "Plant shadow" [ref=f5e147]
+              - img "Plant" [ref=f5e148]
+            - generic [ref=f5e150]:
+              - img "Shelf shadow" [ref=f5e152]
+              - img "Shelf" [ref=f5e153]
+          - generic [ref=f5e155]:
+            - heading "Découvrez Caeli One" [level=2] [ref=f5e156]:
+              - generic [ref=f5e157]: Découvrez
+              - generic [ref=f5e158]:
+                - generic [ref=f5e160]:
+                  - generic [ref=f5e161]: C
+                  - generic [ref=f5e162]: a
+                  - generic [ref=f5e163]: e
+                  - generic [ref=f5e164]: l
+                  - generic [ref=f5e165]: i
+                - generic [ref=f5e167]:
+                  - generic [ref=f5e168]: O
+                  - generic [ref=f5e169]: "n"
+                  - generic [ref=f5e170]: e
+            - link [ref=f5e172] [cursor=pointer]:
+              - /url: https://www.caeli-energie.com/product/caeli-one/
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - img "Caeli One Shadow"
+                  - img "Caeli One"
+                - generic [ref=f5e182]: Découvrir
+        - generic [ref=f5e206]:
+          - generic [ref=f5e207]: Notre mission
+          - heading "Fabriquer localement des solutions de rafraîchissement durables" [level=2] [ref=f5e208]:
+            - generic [ref=f5e209]:
+              - generic [ref=f5e210]: Fabriquer
+              - generic [ref=f5e212]: localement
+            - generic [ref=f5e214]:
+              - generic [ref=f5e215]: des
+              - generic [ref=f5e217]: solutions
+              - generic [ref=f5e219]: de
+              - generic [ref=f5e221]: rafraîchissement
+              - generic [ref=f5e223]: durables
+        - generic [ref=f5e225]:
+          - generic [ref=f5e226]:
+            - heading "Professionnels" [level=3] [ref=f5e230] [cursor=pointer]
+            - heading "Particuliers" [level=3] [ref=f5e235] [cursor=pointer]
+            - heading "Collectivités" [level=3] [ref=f5e240] [cursor=pointer]
+          - generic [ref=f5e243]:
+            - generic [ref=f5e244]:
+              - figure [ref=f5e247]
+              - figure [ref=f5e250]
+              - figure [ref=f5e253]
+            - generic [ref=f5e257]:
+              - generic [ref=f5e258]: Que vous soyez installateur à la recherche d’une solution facile à poser ou gestionnaire de bâtiment en quête de simplicité de maintenance, installez des modules CAELI et devenez acteurs de la décarbonation.
+              - generic [ref=f5e259]: Si comme un Français sur deux vous avez honte d’utiliser la clim’ mais que vous cherchez tout de même une solution pour ne plus souffrir de la chaleur, vous êtes au bon endroit.
+              - generic [ref=f5e260]: Vous souhaitez garantir le confort thermique même en pleine canicule, c’est essentiel dans un établissement qui accueille du public.
+        - generic [ref=f5e262]:
+          - figure [ref=f5e266]
+          - generic [ref=f5e268]:
+            - paragraph [ref=f5e269]: "Nos modules affichent un coefficient de performance (COP) de 16 : pour chaque watt consommé, nos rafraîchisseurs produisent 16 watts de froid. C’est 5 fois plus que les climatiseurs conventionnels. Ce rendement nous permet d’atteindre un niveau de performance unique sur le marché."
+            - link [ref=f5e270] [cursor=pointer]:
+              - /url: https://www.caeli-energie.com/revolution-caeli/
+        - generic [ref=f5e281]:
+          - paragraph [ref=f5e284]: En faisant le choix d’une fabrication française et l’utilisation de matériaux recyclés, la conception est optimisée et permet à notre solution de minimiser son impact environnemental. La consommation électrique est également réduite de 80% par rapport à un système de climatisation classique.
+          - figure [ref=f5e288]
+        - generic [ref=f5e289]:
+          - generic:
+            - generic:
+              - generic:
+                - figure
+            - generic:
+              - generic:
+                - figure
+          - generic [ref=f5e290]:
+            - generic [ref=f5e291]: Entrez dans la nouvelle ère
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - figure
+              - generic:
+                - generic:
+                  - figure
+            - link [ref=f5e294] [cursor=pointer]:
+              - /url: https://www.caeli-energie.com/contact/
+        - contentinfo [ref=f5e304]:
+          - generic [ref=f5e305]: La révolution fraîche
+          - generic:
+            - link "Caeli One" [ref=f5e306] [cursor=pointer]:
+              - /url: https://www.caeli-energie.com/produit/caeli-one/
+            - link "Révolution Caeli" [ref=f5e307] [cursor=pointer]:
+              - /url: https://www.caeli-energie.com/technologie-revolution-caeli/
+            - link "Simuler mon projet" [ref=f5e308] [cursor=pointer]:
+              - /url: https://www.caeli-energie.com/simuler-mon-projet/
+            - link "Contact" [ref=f5e309] [cursor=pointer]:
+              - /url: https://www.caeli-energie.com/contact/
+            - link "Blog" [ref=f5e310] [cursor=pointer]:
+              - /url: https://www.caeli-energie.com/blog/
+          - generic:
+            - link "Recrutement" [ref=f5e311] [cursor=pointer]:
+              - /url: https://www.caeli-energie.com/nous-rejoindre/
+            - link "FAQ" [ref=f5e312] [cursor=pointer]:
+              - /url: https://www.caeli-energie.com/faq/
+            - link "Espace pro" [ref=f5e313] [cursor=pointer]:
+              - /url: https://www.caeli-energie.com/?page_id=516
+          - link [ref=f5e314] [cursor=pointer]:
+            - /url: https://www.caeli-energie.com
+          - generic [ref=f5e328]:
+            - generic:
+              - link "Twitter" [ref=f5e329] [cursor=pointer]:
+                - /url: https://x.com/caeli_energie
+              - link "Youtube" [ref=f5e330] [cursor=pointer]:
+                - /url: https://www.youtube.com/@CaeliEnergie
+              - link "LinkedIn" [ref=f5e331] [cursor=pointer]:
+                - /url: https://www.linkedin.com/company/caeli-energie/
+            - generic:
+              - generic [ref=f5e333] [cursor=pointer]:
+                - link "Beaucoup" [ref=f5e334]:
+                  - /url: https://beaucoup.studio/
+                - generic [ref=f5e335]: Crédits
+              - link "Mentions légales" [ref=f5e336] [cursor=pointer]:
+                - /url: https://www.caeli-energie.com/mentions-legales/
+              - generic [ref=f5e337] [cursor=pointer]: Cookies
+  - generic:
+    - text: ✓ ✗ ✛ ✓ ✛ ✛ ✛ ✛ ✓ ✗ ✛ ✛ ✛ ✛
+    - generic [active] [ref=f5e338]:
+      - generic [ref=f5e339]: En cliquant sur « Accepter », vous acceptez l'installation de cookies sur votre navigateur afin d'améliorer votre expérience de navigation et l'acquisition de statistiques. Consultez nos mentions légales pour plus d'informations.
+      - button "Accepter" [ref=f5e340] [cursor=pointer]: ✓ Accepter
+      - button "Préférences (fenêtre modale)" [ref=f5e341] [cursor=pointer]: Préférences

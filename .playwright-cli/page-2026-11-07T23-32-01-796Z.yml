@@ -1,0 +1,66 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e188]:
+    - banner [ref=e189]:
+      - generic [ref=e190]:
+        - link "MzansiMotorStack home" [ref=e191] [cursor=pointer]:
+          - /url: /
+        - button "Open navigation" [ref=e192] [cursor=pointer]
+      - link "Start" [ref=e194] [cursor=pointer]:
+        - /url: /start
+    - main [ref=e198]:
+      - generic [ref=e199]: Draft notice · pending approval
+      - heading "Privacy policy" [level=1] [ref=e201]
+      - paragraph [ref=e202]: Here is how the demo and planned production service handle information. This draft needs operator details, retention periods and legal review before production signup can open.
+      - generic [ref=e203]:
+        - article [ref=e204]:
+          - heading "Public demo" [level=2] [ref=e210]
+          - paragraph [ref=e211]: The sample workspace uses fictional dealership records. The home page contact form validates in your browser but does not send its message. Demo onboarding keeps progress in the browser session.
+        - article [ref=e212]:
+          - heading "Account and workspace data" [level=2] [ref=e218]
+          - paragraph [ref=e219]: When production services are configured, Clerk handles account identity. Supabase stores dealership setup details, memberships and operational records for the selected workspace.
+        - article [ref=e220]:
+          - heading "Billing details" [level=2] [ref=e226]
+          - paragraph [ref=e227]: Paystack is the selected payment provider for checkout when live billing is enabled. The app stores billing status and references; payment card entry takes place with the provider.
+      - region "Privacy details" [ref=e228]:
+        - article [ref=e229]:
+          - heading "Why information is used" [level=2] [ref=e230]
+          - paragraph [ref=e231]: Account and dealership details are used to set up access, manage the selected workspace, record service requests and support billing. Vehicle, lead and task records are used for the dealership workflows chosen by its team. Marketing email is a separate opt-in during onboarding.
+        - article [ref=e232]:
+          - heading "Your choices and requests" [level=2] [ref=e233]
+          - paragraph [ref=e234]:
+            - text: Account details can be reviewed in the account area when sign-in is configured. Requests to access, correct or delete personal information, and objections to processing, need a published operator contact before launch. South Africa’s
+            - link "Information Regulator" [ref=e235] [cursor=pointer]:
+              - /url: https://inforegulator.org.za/
+            - text: explains the rights available under POPIA.
+        - article [ref=e236]:
+          - heading "Before this notice is final" [level=2] [ref=e237]
+          - paragraph [ref=e238]: The responsible operator’s legal name and contact details, exact provider locations, retention periods, security and deletion procedures, and any analytics or marketing services must be confirmed and published. No production consent version should be marked approved until that review is complete.
+      - generic [ref=e239]:
+        - heading "Explore the other public pages" [level=2] [ref=e240]
+        - paragraph [ref=e241]: Compare the subscription plans and read the draft service scope before starting a workspace.
+        - generic [ref=e242]:
+          - link "View pricing" [ref=e243] [cursor=pointer]:
+            - /url: /pricing
+          - link "Read terms" [ref=e246] [cursor=pointer]:
+            - /url: /terms
+    - contentinfo [ref=e249]:
+      - link "MzansiMotorStack home" [ref=e250] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e251]: Dealership operations, with room to grow.
+      - generic [ref=e252]:
+        - link "Pricing" [ref=e253] [cursor=pointer]:
+          - /url: /pricing
+        - link "Tutorial" [ref=e254] [cursor=pointer]:
+          - /url: /tutorial
+        - link "Privacy policy" [ref=e255] [cursor=pointer]:
+          - /url: /privacy
+        - link "Terms of service" [ref=e256] [cursor=pointer]:
+          - /url: /terms
+        - link "Try demo" [ref=e257] [cursor=pointer]:
+          - /url: /demo
+        - link "Home" [ref=e258] [cursor=pointer]:
+          - /url: /
+      - generic [ref=e259]: © 2026 mzansiMotorStack
+  - generic [ref=e159]:
+    - button "Copy element" [ref=e164] [cursor=pointer]
+    - button "Collapse toolbar" [expanded] [ref=e168] [cursor=pointer]

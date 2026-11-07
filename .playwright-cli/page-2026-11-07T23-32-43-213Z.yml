@@ -1,0 +1,62 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e3]:
+    - banner [ref=f1e4]:
+      - generic [ref=f1e5]:
+        - link "MzansiMotorStack home" [ref=f1e6] [cursor=pointer]:
+          - /url: /
+        - button "Open navigation" [ref=f1e7] [cursor=pointer]
+      - link "Start" [ref=f1e9] [cursor=pointer]:
+        - /url: /start
+    - main [ref=f1e13]:
+      - generic [ref=f1e14]: Draft terms · pending approval
+      - heading "Terms of service" [level=1] [ref=f1e16]
+      - paragraph [ref=f1e17]: This is the proposed service scope for review, not a final agreement. Production signup remains paused until approved terms are published.
+      - region "Service terms details" [ref=f1e18]:
+        - article [ref=f1e19]:
+          - heading "Plans and locations" [level=2] [ref=f1e20]
+          - paragraph [ref=f1e21]: Each subscription covers one dealership location and the features listed for the selected plan. User limits and included website, social and support services vary by plan. The selected billing interval and amount are shown in the quote before checkout.
+        - article [ref=f1e22]:
+          - heading "Setup and extra work" [level=2] [ref=f1e23]
+          - paragraph [ref=f1e24]: Guided self-service and assisted setup have different fees and scopes. Imports are limited to supported formats and the accepted record count. Complex cleanup, paper transcription, custom integrations, travel, domains, advertising and paid usage need a separate reviewed quote unless expressly included.
+        - article [ref=f1e25]:
+          - heading "Approval and payment" [level=2] [ref=f1e26]
+          - paragraph [ref=f1e27]: Website drafts and social content require dealership approval before publication. Staff approve AI-assisted replies before sending. A subscription becomes active only after the configured payment provider verifies payment. Final VAT treatment and usage allowances must be shown before checkout.
+        - article [ref=f1e28]:
+          - heading "Final agreement required" [level=2] [ref=f1e29]
+          - paragraph [ref=f1e30]: Cancellation, renewals, refunds, support commitments, operator identity, dispute process and other binding terms still need approval. These draft terms cannot be used as the production service agreement.
+      - generic [ref=f1e31]:
+        - heading "Review the plans and data notice" [level=2] [ref=f1e32]
+        - paragraph [ref=f1e33]: The public pricing page uses the same plan values as onboarding. The privacy page describes the information the app may process.
+        - generic [ref=f1e34]:
+          - link "View pricing" [ref=f1e35] [cursor=pointer]:
+            - /url: /pricing
+          - link "Read privacy policy" [ref=f1e38] [cursor=pointer]:
+            - /url: /privacy
+    - contentinfo [ref=f1e41]:
+      - link "MzansiMotorStack home" [ref=f1e42] [cursor=pointer]:
+        - /url: /
+      - generic [ref=f1e43]: Dealership operations, with room to grow.
+      - generic [ref=f1e44]:
+        - link "Pricing" [ref=f1e45] [cursor=pointer]:
+          - /url: /pricing
+        - link "Tutorial" [ref=f1e46] [cursor=pointer]:
+          - /url: /tutorial
+        - link "Privacy policy" [ref=f1e47] [cursor=pointer]:
+          - /url: /privacy
+        - link "Terms of service" [ref=f1e48] [cursor=pointer]:
+          - /url: /terms
+        - link "Try demo" [ref=f1e49] [cursor=pointer]:
+          - /url: /demo
+        - link "Home" [ref=f1e50] [cursor=pointer]:
+          - /url: /
+      - generic [ref=f1e51]: © 2026 mzansiMotorStack
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - button "Copy element"
+          - button "Collapse toolbar" [expanded]

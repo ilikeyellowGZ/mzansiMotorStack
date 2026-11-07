@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -32,7 +32,8 @@ import {
   useLocation,
 } from "react-router-dom";
 const OnboardingWizard = lazy(() => import("./onboarding/OnboardingWizard").then(module => ({ default: module.OnboardingWizard })));
-import { appMode, supabase } from "./lib/config";
+import { appMode, hasApprovedLegalNotices, supabase } from "./lib/config";
+import { formatMoney, getSetupFee, planDetails, type PlanCode } from "./lib/onboarding";
 import { AcceptInvitePage, AccountPage, ClerkLogoutButton, ClerkProtected, ClerkSignInPage, ClerkSignUpPage, InviteStaffPage } from "./auth/ClerkAuth";
 import { useAuth } from "@clerk/react";
 
@@ -79,27 +80,67 @@ function Button({
   );
 }
 
+function PublicHeader() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const location = useLocation();
+  const onHome = location.pathname === "/";
+  useEffect(() => {
+    let previousY = window.scrollY;
+    const onScroll = () => {
+      const nextY = window.scrollY;
+      if (Math.abs(nextY - previousY) > 5 && !menuOpen) setHeaderHidden(nextY > previousY && nextY > 100);
+      previousY = nextY;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [menuOpen]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [menuOpen]);
+  return (
+    <header className={`site-header page-wrap ${headerHidden && !menuOpen ? "site-header-hidden" : ""}`} onFocusCapture={() => setHeaderHidden(false)}>
+      <div className="site-header-panel">
+        <Brand />
+        <nav className="site-nav" aria-label="Main navigation">
+          <a href={onHome ? "#platform" : "/#platform"}>Platform</a>
+          <a href={onHome ? "#how-it-works" : "/#how-it-works"}>How it works</a>
+          <NavLink to="/pricing">Pricing</NavLink>
+          <NavLink to="/privacy">Privacy</NavLink>
+          <NavLink to="/terms">Terms</NavLink>
+        </nav>
+        <div className="header-utilities">
+          <Link to="/demo">Try demo</Link>
+          <Link to="/login">Sign in</Link>
+        </div>
+        <button className="public-menu-toggle icon-button" type="button" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-controls="public-mobile-nav" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>
+          {menuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </div>
+      <Button to="/start" className="header-cta"><span className="header-cta-long">Start your workspace</span><span className="header-cta-short">Start</span><ArrowRight size={16} /></Button>
+      <nav id="public-mobile-nav" className={`public-mobile-nav ${menuOpen ? "is-open" : ""}`} aria-label="Mobile navigation" hidden={!menuOpen}>
+        <a href={onHome ? "#platform" : "/#platform"} onClick={() => setMenuOpen(false)}>Platform</a>
+        <a href={onHome ? "#how-it-works" : "/#how-it-works"} onClick={() => setMenuOpen(false)}>How it works</a>
+        <Link to="/pricing" onClick={() => setMenuOpen(false)}>Pricing</Link>
+        <Link to="/demo" onClick={() => setMenuOpen(false)}>Try demo</Link>
+        <Link to="/tutorial" onClick={() => setMenuOpen(false)}>Setup tutorial</Link>
+        <Link to="/privacy" onClick={() => setMenuOpen(false)}>Privacy policy</Link>
+        <Link to="/terms" onClick={() => setMenuOpen(false)}>Terms of service</Link>
+        <Link to="/login" onClick={() => setMenuOpen(false)}>Sign in</Link>
+      </nav>
+    </header>
+  );
+}
+
 function Landing() {
   return (
     <div className="landing">
-      <header className="site-header page-wrap">
-        <Brand />
-        <nav className="site-nav" aria-label="Main navigation">
-          <a href="#platform">Platform</a>
-          <a href="#how-it-works">How it works</a>
-        </nav>
-        <div className="header-actions">
-          <Button to="/demo" variant="quiet" className="signin-link">
-            Try demo
-          </Button>
-          <Button to="/login" variant="quiet" className="signin-link">
-            Sign in
-          </Button>
-          <Button to="/start" className="header-cta">
-            Start your workspace <ArrowRight size={16} />
-          </Button>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main>
         <section className="hero page-wrap">
@@ -367,14 +408,67 @@ function Landing() {
         <Brand />
         <span>Dealership operations, with room to grow.</span>
         <div>
+          <Link to="/pricing">Pricing</Link>
           <Link to="/tutorial">Setup tutorial</Link>
-          <Link to="/privacy">Data notice</Link>
+          <Link to="/privacy">Privacy policy</Link>
+          <Link to="/terms">Terms of service</Link>
           <a href="#contact">Contact</a>
           <Link to="/login">Sign in</Link>
           <Link to="/start">Create workspace</Link>
         </div>
         <small>© 2026 mzansiMotorStack</small>
       </footer>
+    </div>
+  );
+}
+
+function Pricing() {
+  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
+  const signupReady = appMode === "production" && hasApprovedLegalNotices;
+
+  return (
+    <div className="tutorial-page">
+      <PublicHeader />
+      <main className="page-wrap pricing-main">
+        <div className="eyebrow"><span className="eyebrow-dot" /> Plans for growing dealerships</div>
+        <div className="pricing-intro">
+          <div>
+            <h1>Clear plans.<br /><span>Room to grow.</span></h1>
+            <p>Choose a starting point for one dealership location. Compare the subscription, then review any setup work and the final quote during onboarding.</p>
+          </div>
+          <div className="billing-switch" role="group" aria-label="Billing interval">
+            <button type="button" className={billing === "monthly" ? "selected" : ""} aria-pressed={billing === "monthly"} onClick={() => setBilling("monthly")}>Monthly</button>
+            <button type="button" className={billing === "annual" ? "selected" : ""} aria-pressed={billing === "annual"} onClick={() => setBilling("annual")}>Annual</button>
+          </div>
+        </div>
+        <div className="pricing-grid">
+          {(Object.entries(planDetails) as [PlanCode, (typeof planDetails)[PlanCode]][]).map(([code, plan]) => (
+            <article className={`pricing-card ${code === "growth" ? "pricing-card-featured" : ""}`} key={code}>
+              <div className="pricing-card-top"><span className="pricing-card-index">{code === "essentials" ? "01" : code === "growth" ? "02" : "03"} / PLAN</span>{code === "growth" && <span className="pricing-badge">For growing teams</span>}</div>
+              <h2>{plan.name}</h2>
+              <p className="pricing-card-description">{code === "essentials" ? "The daily essentials for a small dealership team." : code === "growth" ? "More seats and support as your operation expands." : "A broader service with a managed website and social content."}</p>
+              <div className="pricing-amount"><strong>{formatMoney(billing === "monthly" ? plan.monthly : plan.annual)}</strong><span>/{billing === "monthly" ? "month" : "year"}</span></div>
+              <p className="pricing-billing-note">{billing === "monthly" ? `${formatMoney(plan.annual)} if billed annually · save ${formatMoney(plan.saving)}` : `Billed upfront · save ${formatMoney(plan.saving)} against 12 monthly payments`}</p>
+              <Button to={signupReady ? "/start" : "/demo"} variant={code === "growth" ? "primary" : "outline"}>{signupReady ? "Continue to setup" : "Explore the demo"} <ArrowRight size={16} /></Button>
+              <div className="pricing-features">
+                <span><Check size={16} /> Stock, leads, tasks and sales pipeline</span>
+                <span><Check size={16} /> {plan.users} user accounts</span>
+                <span><Check size={16} /> {plan.support}</span>
+                <span><Check size={16} /> AI: {plan.ai}</span>
+                <span><Check size={16} /> Website: {plan.website}</span>
+                <span><Check size={16} /> Social: {plan.social}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+        <section className="pricing-detail" aria-labelledby="pricing-setup-title">
+          <div><span className="panel-kicker">BEFORE CHECKOUT</span><h2 id="pricing-setup-title">Setup and billing, upfront.</h2><p>Guided self-service has no assisted CRM migration fee on Essentials or Growth. Managed self-service includes a separate {formatMoney(getSetupFee("managed", "self_service"))} launch setup fee.</p></div>
+          <div><h3>Assisted online setup</h3><ul>{(Object.entries(planDetails) as [PlanCode, (typeof planDetails)[PlanCode]][]).map(([code, plan]) => <li key={code}><span>{plan.name}</span><strong>{formatMoney(getSetupFee(code, "online"))}</strong></li>)}</ul><p>In-person assistance, unsupported imports, domain costs and advertising are quoted separately. Setup fees may be paid upfront or in three monthly instalments where offered.</p></div>
+        </section>
+        <p className="pricing-disclaimer">Prices are shown in ZAR. VAT treatment, AI usage allowances and any optional services must be confirmed in your final quote before checkout. {!signupReady && "The demo cannot create a paid plan; production signup remains paused until pricing and legal notices are approved."}</p>
+        <div className="pricing-next"><span>Want to see the workspace first?</span><Button to="/demo" variant="dark">Explore the demo <ArrowRight size={16} /></Button></div>
+      </main>
+      <PublicFooter />
     </div>
   );
 }
@@ -463,21 +557,7 @@ function ContactSection() {
 function Tutorial() {
   return (
     <div className="tutorial-page">
-      <header className="site-header page-wrap">
-        <Brand />
-        <nav className="site-nav" aria-label="Main navigation">
-          <Link to="/demo">Try demo</Link>
-          <Link to="/privacy">Data notice</Link>
-        </nav>
-        <div className="header-actions">
-          <Button to="/" variant="quiet" className="signin-link">
-            Home
-          </Button>
-          <Button to="/start" className="header-cta">
-            Start your workspace <ArrowRight size={16} />
-          </Button>
-        </div>
-      </header>
+      <PublicHeader />
       <main className="page-wrap tutorial-main">
         <div className="eyebrow">
           <span className="eyebrow-dot" /> A beginner-friendly walkthrough
@@ -598,74 +678,64 @@ function Tutorial() {
 function PrivacyNotice() {
   return (
     <div className="tutorial-page">
-      <header className="site-header page-wrap">
-        <Brand />
-        <nav className="site-nav" aria-label="Main navigation">
-          <Link to="/tutorial">Setup tutorial</Link>
-          <Link to="/demo">Try demo</Link>
-        </nav>
-        <div className="header-actions">
-          <Button to="/" variant="quiet" className="signin-link">
-            Home
-          </Button>
-          <Button to="/start" className="header-cta">
-            Start your workspace <ArrowRight size={16} />
-          </Button>
-        </div>
-      </header>
+      <PublicHeader />
       <main className="page-wrap privacy-main">
         <div className="eyebrow">
-          <span className="eyebrow-dot" /> Current prototype behavior
+          <span className="eyebrow-dot" /> Draft notice · pending approval
         </div>
-        <h1>Data notice</h1>
+        <h1>Privacy policy</h1>
         <p className="tutorial-lede">
-          This page describes the frontend preview as it exists today. It is not
-          a full privacy policy or a legal compliance statement.
+          Here is how the demo and planned production service handle information.
+          This draft needs operator details, retention periods and legal review
+          before production signup can open.
         </p>
         <div className="privacy-cards">
           <article>
             <span className="privacy-icon">
+              <UsersRound size={18} />
+            </span>
+            <h2>Public demo</h2>
+            <p>
+              The sample workspace uses fictional dealership records. The home
+              page contact form validates in your browser but does not send its
+              message. Demo onboarding keeps progress in the browser session.
+            </p>
+          </article>
+          <article>
+            <span className="privacy-icon">
               <LockKeyhole size={18} />
             </span>
-            <h2>Forms stay in the page</h2>
+            <h2>Account and workspace data</h2>
             <p>
-              Company setup, sign-in, password reset and contact forms do not
-              submit to a server. They only show local interface feedback.
+              When production services are configured, Clerk handles account
+              identity. Supabase stores dealership setup details, memberships
+              and operational records for the selected workspace.
             </p>
           </article>
           <article>
             <span className="privacy-icon">
               <Building2 size={18} />
             </span>
-            <h2>Workspace is temporary</h2>
+            <h2>Billing details</h2>
             <p>
-              Company and branch details are kept in the current app session to
-              preview the workspace. They are not written to a database or
-              browser storage.
-            </p>
-          </article>
-          <article>
-            <span className="privacy-icon">
-              <UsersRound size={18} />
-            </span>
-            <h2>Demo records are fictional</h2>
-            <p>
-              Vehicles, customer names, activities and task summaries are sample
-              content. No real dealership or customer records are connected.
+              Paystack is the selected payment provider for checkout when live
+              billing is enabled. The app stores billing status and references;
+              payment card entry takes place with the provider.
             </p>
           </article>
         </div>
+        <section className="legal-sections" aria-label="Privacy details">
+          <article><h2>Why information is used</h2><p>Account and dealership details are used to set up access, manage the selected workspace, record service requests and support billing. Vehicle, lead and task records are used for the dealership workflows chosen by its team. Marketing email is a separate opt-in during onboarding.</p></article>
+          <article><h2>Your choices and requests</h2><p>Account details can be reviewed in the account area when sign-in is configured. Requests to access, correct or delete personal information, and objections to processing, need a published operator contact before launch. South Africa’s <a href="https://inforegulator.org.za/" target="_blank" rel="noreferrer">Information Regulator</a> explains the rights available under POPIA.</p></article>
+          <article><h2>Before this notice is final</h2><p>The responsible operator’s legal name and contact details, exact provider locations, retention periods, security and deletion procedures, and any analytics or marketing services must be confirmed and published. No production consent version should be marked approved until that review is complete.</p></article>
+        </section>
         <div className="privacy-next">
-          <h2>Before accounts are enabled</h2>
+          <h2>Explore the other public pages</h2>
           <p>
-            A production data notice must be written against the actual
-            services, collection points, retention settings and user controls.
-            Authentication, storage, analytics and contact submissions are not
-            configured in this preview.
+            Compare the subscription plans and read the draft service scope
+            before starting a workspace.
           </p>
-          <Button to="/tutorial" variant="outline">
-            Read the setup tutorial <ArrowRight size={15} />
-          </Button>
+          <div className="legal-links"><Button to="/pricing" variant="outline">View pricing <ArrowRight size={15} /></Button><Button to="/terms" variant="outline">Read terms <ArrowRight size={15} /></Button></div>
         </div>
       </main>
       <PublicFooter />
@@ -676,57 +746,29 @@ function PrivacyNotice() {
 function TermsNotice() {
   return (
     <div className="tutorial-page">
-      <header className="site-header page-wrap">
-        <Brand />
-        <nav className="site-nav" aria-label="Main navigation">
-          <Link to="/tutorial">Setup tutorial</Link>
-          <Link to="/privacy">Data notice</Link>
-        </nav>
-        <div className="header-actions">
-          <Button to="/" variant="quiet" className="signin-link">
-            Home
-          </Button>
-          <Button to="/start" className="header-cta">
-            Start your workspace <ArrowRight size={16} />
-          </Button>
-        </div>
-      </header>
+      <PublicHeader />
       <main className="page-wrap privacy-main">
         <div className="eyebrow">
-          <span className="eyebrow-dot" /> Proposed service scope
+          <span className="eyebrow-dot" /> Draft terms · pending approval
         </div>
-        <h1>Service terms preview</h1>
+        <h1>Terms of service</h1>
         <p className="tutorial-lede">
-          This page is a plain-language summary for product planning. It is not
-          an approved contract or a final legal agreement.
+          This is the proposed service scope for review, not a final agreement.
+          Production signup remains paused until approved terms are published.
         </p>
+        <section className="legal-sections" aria-label="Service terms details">
+          <article><h2>Plans and locations</h2><p>Each subscription covers one dealership location and the features listed for the selected plan. User limits and included website, social and support services vary by plan. The selected billing interval and amount are shown in the quote before checkout.</p></article>
+          <article><h2>Setup and extra work</h2><p>Guided self-service and assisted setup have different fees and scopes. Imports are limited to supported formats and the accepted record count. Complex cleanup, paper transcription, custom integrations, travel, domains, advertising and paid usage need a separate reviewed quote unless expressly included.</p></article>
+          <article><h2>Approval and payment</h2><p>Website drafts and social content require dealership approval before publication. Staff approve AI-assisted replies before sending. A subscription becomes active only after the configured payment provider verifies payment. Final VAT treatment and usage allowances must be shown before checkout.</p></article>
+          <article><h2>Final agreement required</h2><p>Cancellation, renewals, refunds, support commitments, operator identity, dispute process and other binding terms still need approval. These draft terms cannot be used as the production service agreement.</p></article>
+        </section>
         <div className="privacy-next">
-          <h2>What the planned service covers</h2>
+          <h2>Review the plans and data notice</h2>
           <p>
-            Subscriptions are for one dealership location and include the
-            features listed for the selected plan. Assisted setup, website work,
-            social content, travel, domain costs, advertising and paid usage are
-            separate unless an approved quote explicitly includes them.
+            The public pricing page uses the same plan values as onboarding.
+            The privacy page describes the information the app may process.
           </p>
-          <p>
-            Any import is limited to supported formats and the accepted record
-            count. Complex cleanup, paper transcription, custom integrations and
-            unsupported imports require a reviewed, itemised quote. Work starts
-            only after scope and any applicable charges are accepted.
-          </p>
-          <p>
-            Website drafts and social content require dealership review and
-            approval before publication. Staff approve AI-assisted replies
-            before sending. Payment is not taken and subscriptions are not
-            activated until a configured provider verifies payment.
-          </p>
-          <p>
-            These terms must be reviewed and replaced with the approved service
-            agreement before production signup is enabled.
-          </p>
-          <Button to="/privacy" variant="outline">
-            Read the data notice <ArrowRight size={15} />
-          </Button>
+          <div className="legal-links"><Button to="/pricing" variant="outline">View pricing <ArrowRight size={15} /></Button><Button to="/privacy" variant="outline">Read privacy policy <ArrowRight size={15} /></Button></div>
         </div>
       </main>
       <PublicFooter />
@@ -740,8 +782,10 @@ function PublicFooter() {
       <Brand />
       <span>Dealership operations, with room to grow.</span>
       <div>
+        <Link to="/pricing">Pricing</Link>
         <Link to="/tutorial">Tutorial</Link>
-        <Link to="/privacy">Data notice</Link>
+        <Link to="/privacy">Privacy policy</Link>
+        <Link to="/terms">Terms of service</Link>
         <Link to="/demo">Try demo</Link>
         <Link to="/">Home</Link>
       </div>
@@ -822,6 +866,18 @@ function AppShell({ workspace, preview = false, identityKey = "" }: { workspace:
   const activeWorkspace = isPreview ? workspace : liveWorkspace;
 
   useEffect(() => {
+    if (!menuOpen && !accountMenu) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        setAccountMenu(false);
+      }
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [menuOpen, accountMenu]);
+
+  useEffect(() => {
     if (isPreview || appMode !== "production" || !supabase) return;
     let active = true;
     setLiveWorkspace(null);
@@ -892,9 +948,10 @@ function AppShell({ workspace, preview = false, identityKey = "" }: { workspace:
       : titleMap[normalizedPath] ?? titleMap["/app"];
   return (
     <div className="app-shell">
-      <aside className={`app-sidebar ${menuOpen ? "sidebar-open" : ""}`}>
+      <div className="workspace-header">
+      <aside id="workspace-navigation" className={`app-sidebar ${menuOpen ? "sidebar-open" : ""}`}>
       <div className="sidebar-head">
-          <Brand light compact />
+          <Brand light />
           <button
             className="sidebar-close icon-button"
             onClick={() => setMenuOpen(false)}
@@ -951,6 +1008,10 @@ function AppShell({ workspace, preview = false, identityKey = "" }: { workspace:
             {accountMenu && <div className="account-popover"><Link to="/account">Account settings</Link>{!isPreview && <ClerkLogoutButton />}</div>}
         </div>
       </aside>
+      <Link className="workspace-header-cta button button-primary" to={isPreview ? "/demo/tasks" : "/app/team"}>
+        {isPreview ? "Open my day" : "Invite staff"} <ArrowRight size={16} />
+      </Link>
+      </div>
       {menuOpen && (
         <button
           aria-label="Close navigation"
@@ -964,6 +1025,8 @@ function AppShell({ workspace, preview = false, identityKey = "" }: { workspace:
             className="mobile-menu icon-button"
             onClick={() => setMenuOpen(true)}
             aria-label="Open menu"
+            aria-controls="workspace-navigation"
+            aria-expanded={menuOpen}
           >
             <Menu size={20} />
           </button>
@@ -1170,9 +1233,49 @@ function ComponentGallery() {
         <section className="panel gallery-panel"><div className="panel-header"><div><span className="panel-kicker">STATUS</span><h2>Clear state labels</h2></div></div><div className="gallery-statuses"><span className="table-status status-available"><i />Available</span><span className="table-status status-reserved"><i />Reserved</span><span className="task-status status-new">New enquiry</span><span className="task-status status-progress">In preparation</span></div></section>
         <section className="panel gallery-panel"><div className="panel-header"><div><span className="panel-kicker">RECORDS</span><h2>Vehicle summary</h2></div><span className="task-status status-available">Available</span></div><div className="gallery-vehicle"><div className="stock-vehicle stock-green"><CarSketch variant="green" /></div><div><b>Toyota Corolla Cross</b><span>2022 - 1.8 XS CVT</span></div><strong>R 319 900</strong></div></section>
         <section className="panel gallery-panel gallery-wide"><div className="panel-header"><div><span className="panel-kicker">FEEDBACK</span><h2>Save and empty states</h2></div></div><div className="gallery-feedback" role="status"><Check size={16} /><span><b>Changes saved</b><small>Your vehicle details are up to date.</small></span></div><div className="gallery-empty"><CarFront size={18} /><b>No vehicles match this search</b><span>Try a different model or clear the stock filter.</span></div></section>
+        <section className="panel gallery-panel"><div className="panel-header"><div><span className="panel-kicker">METRICS</span><h2>Quiet performance summary</h2></div></div><div className="gallery-metrics"><div><span>Available stock</span><b>18</b></div><div><span>Open enquiries</span><b>08</b></div><div><span>Price total</span><b>R 4.8m</b></div></div><div className="gallery-chart" role="img" aria-label="Illustrative weekly enquiry activity chart"><i style={{ height: "42%" }} /><i style={{ height: "68%" }} /><i style={{ height: "54%" }} /><i style={{ height: "78%" }} /><i style={{ height: "60%" }} /><i style={{ height: "91%" }} /><i style={{ height: "72%" }} /></div><div className="gallery-legend"><span><i />Enquiries this week</span><span>Illustrative preview values</span></div></section>
+        <section className="panel gallery-panel"><div className="panel-header"><div><span className="panel-kicker">ACTIVITY</span><h2>Record history and checklist</h2></div><button className="icon-button" aria-label="More activity options"><MoreHorizontal size={17} /></button></div><ol className="gallery-timeline"><li><i /><span><b>New enquiry received</b><small>Thandi Ndlovu · Toyota Corolla Cross · Today, 09:12</small></span></li><li><i /><span><b>Viewing scheduled</b><small>Tomorrow, 14:30 · Dealership floor</small></span></li></ol><div className="gallery-checklist"><span><Check size={14} /> Confirm buyer details</span><span><i /> Prepare vehicle for viewing</span></div><button className="button button-outline" disabled>Save changes</button></section>
       </div>
+      <GalleryExtended />
     </div>
   );
+}
+
+function GalleryExtended() {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const drawerRef = useRef<HTMLDialogElement>(null);
+  const [toast, setToast] = useState("");
+  const [selected, setSelected] = useState(false);
+  const [pageNumber, setPageNumber] = useState(1);
+  return <>
+    <div className="gallery-grid">
+      <section className="panel gallery-panel">
+        <div className="panel-header"><div><span className="panel-kicker">NAVIGATION</span><h2>Menus and overlays</h2></div></div>
+        <div className="gallery-actions">
+          <details className="gallery-menu"><summary className="button button-outline">Record actions <ChevronDown size={16} /></summary><div><Link to="/demo/stock">View stock</Link><Link to="/demo/leads">View enquiries</Link></div></details>
+          <button className="button button-outline" onClick={() => drawerRef.current?.showModal()}>Open drawer</button>
+          <button className="button button-dark" onClick={() => dialogRef.current?.showModal()}>Open dialog</button>
+          <span className="gallery-tooltip-wrap"><button className="icon-button" aria-label="About preview data" aria-describedby="gallery-tooltip"><CircleHelp size={18} /></button><span id="gallery-tooltip" role="tooltip">Gallery records are illustrative.</span></span>
+        </div>
+        <p className="gallery-hint">Press Escape to close either overlay.</p>
+      </section>
+      <section className="panel gallery-panel">
+        <div className="panel-header"><div><span className="panel-kicker">FEEDBACK</span><h2>Alerts and system states</h2></div></div>
+        <div className="gallery-state gallery-state-error" role="alert"><X size={16} /><span><b>Could not save</b><small>Check the highlighted fields and try again.</small></span></div>
+        <div className="gallery-state"><LockKeyhole size={16} /><span><b>Owner access required</b><small>Only an owner can invite staff.</small></span></div>
+        <div className="gallery-state" role="status"><Clock3 size={16} /><span><b>Loading records</b><small>Getting the latest stock list…</small></span></div>
+        <button className="button button-outline" onClick={() => setToast("Preview changes saved")}>Show toast</button>
+        {toast && <div className="gallery-toast" role="status"><Check size={16} /> {toast}<button className="icon-button" aria-label="Dismiss toast" onClick={() => setToast("")}><X size={16} /></button></div>}
+      </section>
+      <section className="panel gallery-panel gallery-wide">
+        <div className="panel-header"><div><span className="panel-kicker">DATA</span><h2>Table, selection and pagination</h2></div></div>
+        <div className="gallery-table-scroll"><table className="gallery-table"><thead><tr><th scope="col">Select</th><th scope="col">Vehicle</th><th scope="col">Status</th><th scope="col">Price</th></tr></thead><tbody><tr><td><input type="checkbox" aria-label={`Select ${pageNumber === 1 ? "Toyota Corolla Cross" : "Volkswagen Polo"}`} checked={selected} onChange={event => setSelected(event.target.checked)} /></td><td>{pageNumber === 1 ? "Toyota Corolla Cross" : "Volkswagen Polo"}</td><td><span className="table-status status-available">Available</span></td><td>{pageNumber === 1 ? "R 319 900" : "R 239 900"}</td></tr></tbody></table></div>
+        <div className="gallery-table-footer"><button className="button button-outline" disabled={!selected} onClick={() => setToast("Bulk actions are preview only")}>Bulk action</button><nav aria-label="Gallery table pages"><button className="button button-quiet" disabled={pageNumber === 1} onClick={() => {setPageNumber(1); setSelected(false);}}>Previous</button><span>Page {pageNumber} of 2</span><button className="button button-quiet" disabled={pageNumber === 2} onClick={() => {setPageNumber(2); setSelected(false);}}>Next</button></nav></div>
+      </section>
+    </div>
+    <dialog ref={dialogRef} className="gallery-dialog" aria-labelledby="gallery-dialog-title"><form method="dialog"><span className="panel-kicker">PREVIEW DIALOG</span><h2 id="gallery-dialog-title">Confirm this action</h2><p>This example will not change dealership data.</p><div className="gallery-actions"><button type="submit" className="button button-outline">Cancel</button><button type="submit" className="button button-primary">Confirm preview</button></div></form></dialog>
+    <dialog ref={drawerRef} className="gallery-dialog gallery-drawer" aria-labelledby="gallery-drawer-title"><form method="dialog"><div className="panel-header"><h2 id="gallery-drawer-title">Record details</h2><button type="submit" className="icon-button" aria-label="Close drawer"><X size={18} /></button></div><p>Toyota Corolla Cross</p><p>2022 · 1.8 XS CVT · R 319 900</p><span className="table-status status-available">Available</span></form></dialog>
+  </>;
 }
 
 function MetricCard({
@@ -1378,10 +1481,21 @@ function TasksPage({ search }: { search: string }) {
 
 export default function App() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const location = useLocation();
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      "/pricing": "Pricing | mzansiMotorStack",
+      "/privacy": "Privacy policy | mzansiMotorStack",
+      "/terms": "Terms of service | mzansiMotorStack",
+      "/tutorial": "Setup tutorial | mzansiMotorStack",
+    };
+    document.title = titles[location.pathname] ?? "mzansiMotorStack — Dealership operations, in one place";
+  }, [location.pathname]);
   return (
     <Suspense fallback={<main className="route-loading" role="status">Loading your workspace…</main>}>
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/pricing" element={<Pricing />} />
       <Route path="/demo" element={<AppShell workspace={null} preview />} />
       <Route path="/demo/stock" element={<AppShell workspace={null} preview />} />
       <Route path="/demo/leads" element={<AppShell workspace={null} preview />} />

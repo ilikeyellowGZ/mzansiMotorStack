@@ -2,7 +2,7 @@
 
 ## 1. Product direction
 
-An operations workspace for South African dealerships. Use a calm, precise dashboard language: editorial headings, thin dividers, aligned numbers, readable status labels, and concise record views. The brand uses the supplied green-and-gold road marks with the application's existing pine and lime interface colors. The visual system remains grounded in warm paper, deep pine navigation, and restrained elevation.
+An operations workspace and public site for independent South African dealerships. Translate Caeli Énergie's live visual language into MzansiMotorStack: an inset, shallow outlined header with a separate action block; oversized, heavy uppercase display typography; generous editorial spacing; quiet borders; and simple directional actions. The product retains its supplied logo, dealership content, existing functionality, warm paper and white surfaces, pine and lime interface colors, and gold confined to its established supporting role. CRM views use the same typographic character at a practical scale. The contract uses the supplied brief and runtime inspection of the live homepage at 390, 768, 1366 and 1920px.
 
 ## 2. Color
 
@@ -25,9 +25,15 @@ Additional semantic text and focus aliases reuse values already present in the i
 
 ## 3. Typography and spacing
 
-Use DM Sans for interface and display text with an Arial/system fallback. Semantic roles are 12, 14, 16, 20, 24, and 32px. Use regular, medium, and semibold weights; use tabular numerals for prices, totals, dates, and metric values. Existing marketing display styles may retain their responsive `clamp()` treatment.
+Altform is declared by the reference but no Altform files are present in the project. Use **DM Sans** as the available geometric-grotesque substitute, loaded as a variable web font across weights 400–1000. Keep the substitution explicit until licensed Altform files are supplied. Interface text remains sentence case; reserve uppercase for public display headlines, eyebrows, and selected compact metadata. Use tabular numerals for prices, totals, dates, and metrics.
 
-Spacing uses a 4px base: 4, 8, 12, 16, 20, 24, 32, 40, and 48px. Use 40px desktop controls and at least 44px touch controls. Controls use about 8px corners; panels use 10px corners. The existing layout breakpoints are 400, 420, 560, 640, 760, 900, 1000, 1200, and 1440px. Validate workspace views at 1440, 1024, 768, and 390px.
+The responsive expressive scale: hero display 64–132px, section display 44–81px, 0.94–1.05 line-height and -0.02em tracking, 900 weight, uppercase. Working titles are 28–40px; section headings 18–24px; body and controls 14–16px with 1.45–1.6 line-height. Small metadata uses 12–14px. Reference desktop anchors at about 1363px are 132.5px / 124.6px for the hero, 80.5px / 80.5px for large sections, and 15.1px / 18.9px, 700 weight for navigation.
+
+Spacing uses a 4px base: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96, 128, and 160px. The shared `--page-gutter` is `clamp(1rem, 2vw, 4rem)`; public section spacing is 80–160px desktop. CRM content uses 24–40px section spacing and 20–32px panel padding. The reference header uses 14px top offset, 28px horizontal inset, 57px panels and CTA, 9–10px gap, and 5px CTA radius, scaled down responsively. Keep controls at least 40px, touch controls at least 44px, and use a 4–6px radius for navigation and main actions. Existing layout breakpoints are 400, 420, 560, 640, 760, 900, 1000, 1150, 1200, and 1440px.
+
+**Fluid width contract:** page wrappers, the public header, sections, footer, CRM header and CRM content use the available parent width with no page-wide maximum. Gutters are applied once at each shell boundary. Grids use fractional tracks and `minmax(0, 1fr)` where content must shrink. Dense tables scroll inside their panels. Local text measures and the onboarding form may remain capped for reading comfort; they do not cap a whole page or working region. At 1920, 2560, 3440 and 3840px, the public and workspace headers and content continue to widen.
+
+**Live reference observations:** At 1366px, Caeli's loaded hero H1 computed to Altform 900, 132.806px, 124.837px line height and -2px tracking. At 390px it computed to 52px, 47.84px line height and -1px tracking. Its header measured 57px high with a 14px top offset at 1366px, and 52px with a 10px offset at 390px. The header slides out when scrolling down. MzansiMotorStack keeps those geometric anchors, shows the public header again on upward scroll, and uses its own palette, logo and dashboard preview.
 
 ## 4. Logo and motion
 
@@ -41,7 +47,10 @@ Spacing uses a 4px base: 4, 8, 12, 16, 20, 24, 32, 40, and 48px. Use 40px deskto
 
 | Component/pattern | Use | States and accessibility |
 |---|---|---|
-| Application shell and navigation | Workspace identity, route navigation, account actions | Current, hover, focus, mobile drawer; labelled nav, `aria-current`, keyboard operation |
+| Public inset header | Brand lockup, public anchors, preview/login utilities and separated primary CTA | 57px desktop panels, 14/28px inset, narrow gap; responsive menu; focus-visible and keyboard access |
+| Public page navigation | Shared links to product sections, pricing, tutorial, privacy notice and service terms | Desktop links, mobile menu with expanded state and close-on-navigation, current page state where practical |
+| Pricing plan card and billing choice | Compare the three plans using the onboarding price source | Monthly/annual selected state, readable ZAR totals, setup and tax caveats, keyboard-accessible selection and CTA |
+| Workspace header and navigation | Workspace identity, grouped available destinations, search and account actions | Current, hover, focus, mobile drawer; labelled nav, `aria-current`, keyboard operation |
 | Brand lockup | Road mark in compact slots, full wordmark on light surfaces with room | Preserve source art; use meaningful link labels and sufficient contrast |
 | Buttons and icon buttons | Primary, secondary, quiet, outline, and icon actions | Default, hover, pressed, focus-visible, disabled, loading; native button/link semantics and 40/44px targets |
 | Page header and toolbar | Page title, context, primary action, search and local filters | Responsive wrap; labelled search and selected filter state |
@@ -54,11 +63,11 @@ Spacing uses a 4px base: 4, 8, 12, 16, 20, 24, 32, 40, and 48px. Use 40px deskto
 | Activity timeline, alert, toast and empty state | Progress, feedback, errors, loading and absence of records | Announce status where appropriate; actionable recovery links stay keyboard-accessible |
 | Menu, drawer and dialog | Account actions, mobile navigation, focused workflows | Button triggers, visible focus, correct expanded state, escape behavior, labelled dialog where implemented |
 
-The React implementation has no component-library dependency. Existing shared JSX and CSS patterns are reused; the preview component gallery at `/demo/components` demonstrates current action, field, status, vehicle, feedback and empty-state patterns using preview-only examples.
+The React implementation has no component-library dependency. Existing shared JSX and CSS patterns are reused; the preview component gallery at `/demo/components` demonstrates action, field, status, vehicle, metric/chart, activity/checklist, feedback, disabled, empty, alert, loading, permission, menu, tooltip, native dialog, drawer, table, selection and pagination patterns using preview-only examples. The active repository implements public landing, pricing, tutorial and draft legal notice pages, authentication, onboarding, the workspace overview, stock, leads, tasks, and the demo gallery. Pricing draws from `src/lib/onboarding.ts`; legal pages must not imply approval or lift the production signup gate. Customer, deal, finance, service, reports, settings, and calendar routes do not currently exist; do not fabricate those modules or route destinations during visual styling.
 
 ## 6. Responsive behavior and data boundaries
 
-Workspace navigation collapses to a mobile drawer. Dashboard performance and actionable records share a balanced desktop grid and stack on narrow screens. Dense inventory and enquiry records scroll locally instead of forcing whole-page horizontal overflow. Filters and common mobile actions provide comfortable touch targets.
+Workspace destinations stay reachable in the compact CRM navigation and collapse to an accessible mobile drawer. Dashboard performance and actionable records share a balanced desktop grid and stack on narrow screens. Dense inventory and enquiry records scroll locally instead of forcing whole-page horizontal overflow. Filters and common mobile actions provide comfortable touch targets. Public headers retain section links, pricing, draft legal notices, demo, sign-in and the actual workspace action; the mobile menu and footer also expose the tutorial.
 
 `/demo/*` uses illustrative local fixtures and clearly identifies them as preview data. `/app` uses live setup status and truthful production empty states. Do not move demo fixtures to production or introduce records, calculations, branch selectors, or unsupported workflows that are not implemented. Customer, deal, finance, service, reporting, settings, and calendar features remain outside this implemented-screen design until those modules exist.
 

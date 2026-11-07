@@ -1,0 +1,177 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - link "MzansiMotorStack home" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - navigation "Main navigation" [ref=e7]:
+        - link "Platform" [ref=e8] [cursor=pointer]:
+          - /url: "#platform"
+        - link "How it works" [ref=e9] [cursor=pointer]:
+          - /url: "#how-it-works"
+        - link "Pricing" [ref=e10] [cursor=pointer]:
+          - /url: /pricing
+      - generic [ref=e11]:
+        - link "Try demo" [ref=e12] [cursor=pointer]:
+          - /url: /demo
+        - link "Sign in" [ref=e13] [cursor=pointer]:
+          - /url: /login
+    - link "Start your workspace" [ref=e14] [cursor=pointer]:
+      - /url: /start
+  - main [ref=e18]:
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]: A clearer day at the dealership
+        - heading "Good deals start with a better view." [level=1] [ref=e23]
+        - paragraph [ref=e24]: Keep your stock, leads and daily work moving together. Start with your dealership, then make the workspace your own.
+        - generic [ref=e25]:
+          - link "Create your company workspace" [ref=e26] [cursor=pointer]:
+            - /url: /start
+          - link "Explore the demo" [ref=e29] [cursor=pointer]:
+            - /url: /demo
+        - generic [ref=e30]: Set up for independent dealerships and growing groups
+      - generic "Preview of the mzansiMotorStack dealership dashboard" [ref=e34]:
+        - generic [ref=e42]:
+          - generic [ref=e43]: Stock overview
+          - generic [ref=e44]: Clear from day one
+        - generic [ref=e48]:
+          - generic [ref=e49]:
+            - generic [ref=e50]:
+              - generic [ref=e51]: YOUR WORKSPACE
+              - strong [ref=e52]: Today at a glance
+            - generic [ref=e53]: M
+          - generic [ref=e54]:
+            - generic [ref=e55]:
+              - generic [ref=e56]: On the floor
+              - strong [ref=e57]: "24"
+              - generic [ref=e58]: +3 this month
+            - generic [ref=e59]:
+              - generic [ref=e60]: New enquiries
+              - strong [ref=e61]: "08"
+              - generic [ref=e62]: Ready for follow-up
+          - generic [ref=e64]:
+            - generic [ref=e65]: Recently added
+            - generic [ref=e66]: See stock
+          - generic [ref=e70]:
+            - img "Vehicle illustration" [ref=e72]
+            - generic [ref=e81]:
+              - strong [ref=e82]: Volkswagen Polo
+              - generic [ref=e83]: 2021 · 1.0 TSI Comfortline
+            - generic [ref=e84]: R 239 900
+          - generic [ref=e85]:
+            - img "Vehicle illustration" [ref=e87]
+            - generic [ref=e96]:
+              - strong [ref=e97]: Toyota Corolla Cross
+              - generic [ref=e98]: 2022 · 1.8 XS CVT
+            - generic [ref=e99]: R 319 900
+          - generic [ref=e100]:
+            - generic [ref=e101]: All systems ready
+            - generic [ref=e103]: Workspace preview
+        - generic [ref=e109]:
+          - generic [ref=e110]: One place to begin
+          - generic [ref=e111]: Built around your team
+        - generic [ref=e112]: For the people behind every sale
+    - generic [ref=e115]:
+      - generic [ref=e116]: MADE FOR THE WAY DEALERSHIPS WORK
+      - generic [ref=e118]: Independent teams
+      - generic [ref=e119]: Multi-branch groups
+      - generic [ref=e120]: Growing businesses
+    - generic [ref=e121]:
+      - generic [ref=e122]:
+        - generic [ref=e123]:
+          - generic [ref=e124]: One workspace, your way
+          - heading "Less chasing. More moving forward." [level=2] [ref=e126]: Less chasing.More moving forward.
+        - paragraph [ref=e127]: Start with a company workspace that gives your people a shared picture of what needs attention, while each dealership keeps its own footing.
+      - generic [ref=e128]:
+        - article [ref=e129]:
+          - generic [ref=e134]: 01 / STOCK
+          - heading "Know what’s on the floor." [level=3] [ref=e135]
+          - paragraph [ref=e136]: Keep vehicle details and stock status easy to find, so the team can spend less time looking and more time doing.
+          - generic [ref=e137]:
+            - generic [ref=e138]: Available
+            - generic [ref=e140]: In preparation
+            - generic [ref=e142]: Reserved
+        - article [ref=e144]:
+          - generic [ref=e150]: 02 / PEOPLE
+          - heading "Keep every conversation in view." [level=3] [ref=e151]
+          - paragraph [ref=e152]: Give new enquiries and follow-ups a clear home, so good opportunities don’t get lost between busy days.
+          - generic [ref=e153]:
+            - generic [ref=e154]: TN
+            - generic [ref=e155]: AM
+            - generic [ref=e156]: SK
+            - generic [ref=e157]: One team, moving together
+        - article [ref=e158]:
+          - generic [ref=e163]: 03 / DAILY WORK
+          - heading "Start the day knowing where to look." [level=3] [ref=e164]
+          - paragraph [ref=e165]: Bring important tasks and next steps into one calm view, ready for your team to pick up.
+          - generic [ref=e166]:
+            - generic [ref=e167]: Follow up with a new buyer
+            - generic [ref=e170]: Confirm vehicle preparation
+    - generic [ref=e174]:
+      - generic [ref=e175]:
+        - generic [ref=e176]: Your company, your starting point
+        - heading "It starts with your dealership." [level=2] [ref=e178]: It starts withyour dealership.
+        - paragraph [ref=e179]: Create your company space, add your first branch and invite the people you work with. You choose how your workspace grows.
+        - link "Set up your company" [ref=e180] [cursor=pointer]:
+          - /url: /start
+        - generic [ref=e183]: Setup is a frontend preview until accounts are connected.
+      - generic [ref=e188]:
+        - generic [ref=e189]:
+          - generic [ref=e190]: "01"
+          - generic [ref=e191]:
+            - strong [ref=e192]: Set up your company
+            - paragraph [ref=e193]: Give your workspace a name and choose who it’s for.
+        - generic [ref=e199]:
+          - generic [ref=e200]: "02"
+          - generic [ref=e201]:
+            - strong [ref=e202]: Make it yours
+            - paragraph [ref=e203]: Add your first branch and choose a few starting details.
+        - generic [ref=e208]:
+          - generic [ref=e209]: "03"
+          - generic [ref=e210]:
+            - strong [ref=e211]: Bring your team in
+            - paragraph [ref=e212]: Shape a shared place to manage the work ahead.
+    - generic [ref=e218]:
+      - generic [ref=e219]:
+        - generic [ref=e220]: Let’s talk about your setup
+        - heading "A better start begins with a conversation." [level=2] [ref=e222]
+        - paragraph [ref=e223]: Tell us a little about your dealership and what you’d like to make easier. This preview form will show its validation, but it won’t send or save your message.
+        - generic [ref=e224]: Your details stay in this browser preview.
+      - generic [ref=e228]:
+        - generic [ref=e229]:
+          - generic [ref=e230]: Your name
+          - textbox "Your name" [ref=e231]:
+            - /placeholder: Name and surname
+        - generic [ref=e232]:
+          - generic [ref=e233]: Work email
+          - textbox "Work email" [ref=e234]:
+            - /placeholder: you@yourdealership.co.za
+        - generic [ref=e235]:
+          - generic [ref=e236]: Dealership
+          - textbox "Dealership" [ref=e237]:
+            - /placeholder: Your company name
+        - generic [ref=e238]:
+          - generic [ref=e239]: What would you like help with?
+          - textbox "What would you like help with?" [ref=e240]:
+            - /placeholder: A little about your team and how you work…
+        - button "Preview contact form" [ref=e241] [cursor=pointer]
+        - generic [ref=e244]: Frontend preview only · No message is sent
+  - contentinfo [ref=e245]:
+    - link "MzansiMotorStack home" [ref=e246] [cursor=pointer]:
+      - /url: /
+    - generic [ref=e247]: Dealership operations, with room to grow.
+    - generic [ref=e248]:
+      - link "Pricing" [ref=e249] [cursor=pointer]:
+        - /url: /pricing
+      - link "Setup tutorial" [ref=e250] [cursor=pointer]:
+        - /url: /tutorial
+      - link "Privacy policy" [ref=e251] [cursor=pointer]:
+        - /url: /privacy
+      - link "Terms of service" [ref=e252] [cursor=pointer]:
+        - /url: /terms
+      - link "Contact" [ref=e253] [cursor=pointer]:
+        - /url: "#contact"
+      - link "Sign in" [ref=e254] [cursor=pointer]:
+        - /url: /login
+      - link "Create workspace" [ref=e255] [cursor=pointer]:
+        - /url: /start
+    - generic [ref=e256]: © 2026 mzansiMotorStack
