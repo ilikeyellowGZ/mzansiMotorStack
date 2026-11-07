@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createSupabaseServerClient, verifiedClerkUser } from "./clerk.ts";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,9 +15,9 @@ export function jsonResponse(body: unknown, status = 200) {
 
 export function getAdminClient() {
   const url = Deno.env.get("SUPABASE_URL");
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const key = Deno.env.get("SUPABASE_SERVER_SECRET") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key) throw new Error("Supabase server credentials are not configured.");
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  return createSupabaseServerClient(url, key);
 }
 
 export function getPaystackSecret() {
@@ -91,12 +91,15 @@ export async function verifyPaystackSignature(request: Request, rawBody: Uint8Ar
 }
 
 export async function getAuthenticatedUser(request: Request) {
-  const authorization = request.headers.get("Authorization");
-  const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
-  if (!token) return null;
-  const { data, error } = await getAdminClient().auth.getUser(token);
-  if (error) return null;
-  return data.user;
+  try {
+    const identity = await verifiedClerkUser(request);
+    const { data: profile, error } = await getAdminClient().from("profiles")
+      .select("id").eq("clerk_user_id", identity.clerkUserId).maybeSingle();
+    if (error || !profile) return null;
+    return { id: profile.id, email: identity.email };
+  } catch {
+    return null;
+  }
 }
 
 export async function getOrCreatePlan(

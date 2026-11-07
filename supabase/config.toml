@@ -24,6 +24,13 @@ max_frequency = "1m"
 otp_length = 6
 otp_expiry = 3600
 
+# For local Supabase CLI use, enable Clerk third-party JWT validation and set
+# the issuer domain copied from Clerk > Configure > Supabase. Production is
+# configured separately in Supabase Dashboard > Authentication > Third-party.
+# [auth.third_party.clerk]
+# enabled = true
+# domain = "https://your-instance.clerk.accounts.dev"
+
 [functions.paystack-checkout]
 verify_jwt = true
 
@@ -32,3 +39,18 @@ verify_jwt = true
 
 [functions.paystack-webhook]
 verify_jwt = false
+
+[functions.provision-clerk-profile]
+verify_jwt = true
+
+[functions.check-pending-invitation]
+verify_jwt = true
+
+[functions.accept-clerk-invitation]
+verify_jwt = true
+
+[functions.create-clerk-invitation]
+verify_jwt = true
+
+[functions.revoke-clerk-invitation]
+verify_jwt = true

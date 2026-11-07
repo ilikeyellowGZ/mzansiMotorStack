@@ -6,6 +6,7 @@ const env = import.meta.env as ImportMetaEnv & {
   VITE_APP_MODE?: string;
   VITE_SUPABASE_URL?: string;
   VITE_SUPABASE_PUBLISHABLE_KEY?: string;
+  VITE_CLERK_PUBLISHABLE_KEY?: string;
   VITE_SERVICE_TERMS_STATUS?: string;
   VITE_SERVICE_TERMS_VERSION?: string;
   VITE_PRIVACY_NOTICE_STATUS?: string;
@@ -21,13 +22,21 @@ export const supabaseUrl = env.VITE_SUPABASE_URL?.trim() ?? "";
 export const supabasePublishableKey =
   env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() ?? "";
 export const hasSupabaseConfig = Boolean(supabaseUrl && supabasePublishableKey);
+export const clerkPublishableKey = env.VITE_CLERK_PUBLISHABLE_KEY?.trim() ?? "";
+export const hasClerkConfig = clerkPublishableKey.startsWith("pk_");
+
+let clerkAccessToken: (() => Promise<string | null>) | null = null;
+export function setClerkAccessTokenProvider(provider: (() => Promise<string | null>) | null) {
+  clerkAccessToken = provider;
+}
 
 export const supabase = hasSupabaseConfig
   ? createClient<Database>(supabaseUrl, supabasePublishableKey, {
+      accessToken: async () => clerkAccessToken?.() ?? null,
       auth: {
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        persistSession: true,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+        persistSession: false,
       },
     })
   : null;

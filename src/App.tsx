@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import {
-  ArrowLeft,
   ArrowRight,
   ArrowUpRight,
   Bell,
@@ -14,7 +13,6 @@ import {
   Gauge,
   LayoutDashboard,
   LockKeyhole,
-  LogOut,
   Menu,
   MoreHorizontal,
   Plus,
@@ -32,35 +30,27 @@ import {
   Route,
   Routes,
   useLocation,
-  useNavigate,
 } from "react-router-dom";
-const AuthReturn = lazy(() => import("./onboarding/OnboardingWizard").then(module => ({ default: module.AuthReturn })));
-const InviteAccept = lazy(() => import("./onboarding/OnboardingWizard").then(module => ({ default: module.InviteAccept })));
 const OnboardingWizard = lazy(() => import("./onboarding/OnboardingWizard").then(module => ({ default: module.OnboardingWizard })));
-const PasswordUpdate = lazy(() => import("./onboarding/OnboardingWizard").then(module => ({ default: module.PasswordUpdate })));
-import { appMode, hasSupabaseConfig, supabase } from "./lib/config";
-import {
-  sendPasswordReset,
-  signIn as signInWithSupabase,
-  signOut as signOutFromSupabase,
-} from "./lib/onboardingRepository";
+import { appMode, supabase } from "./lib/config";
+import { AcceptInvitePage, AccountPage, ClerkLogoutButton, ClerkProtected, ClerkSignInPage, ClerkSignUpPage, InviteStaffPage } from "./auth/ClerkAuth";
+import { useAuth } from "@clerk/react";
 
 type Workspace = { name: string; email: string; branch: string };
 const zarFormatter = new Intl.NumberFormat("en-ZA", { style: "currency", currency: "ZAR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function Brand({ light = false }: { light?: boolean }) {
+function Brand({ light = false, compact = false }: { light?: boolean; compact?: boolean }) {
   return (
     <Link
-      className={`brand ${light ? "brand-light" : ""}`}
+      className={`brand ${light ? "brand-light" : ""} ${compact ? "brand-compact" : ""}`}
       to="/"
-      aria-label="mzansiMotorStack home"
+      aria-label="MzansiMotorStack home"
     >
-      <span className="brand-mark">
-        <CarFront size={19} strokeWidth={2.2} />
-      </span>
-      <span>
-        mzansi<span className="brand-mid">Motor</span>Stack
-      </span>
+      {compact ? (
+        <img className="brand-road-mark" src="/brand/mzansi-road-mark.png" alt="" width="32" height="32" />
+      ) : (
+        <img className="brand-wordmark" src="/brand/mzansi-motorstack-wordmark.png" alt="" width="180" height="60" />
+      )}
     </Link>
   );
 }
@@ -792,319 +782,6 @@ function CarSketch({ variant }: { variant: "sand" | "green" }) {
   );
 }
 
-function AuthFrame({
-  children,
-  subtitle,
-}: {
-  children: React.ReactNode;
-  subtitle?: string;
-}) {
-  return (
-    <div className="auth-page">
-      <aside className="auth-aside">
-        <Brand light />
-        <div className="auth-aside-content">
-          <div className="auth-orb">
-            <CarFront size={58} strokeWidth={1.1} />
-            <span className="orb-glint" />
-          </div>
-          <span className="auth-kicker">A GOOD PLACE TO START</span>
-          <h2>
-            Build a workspace
-            <br />
-            around <em>your business.</em>
-          </h2>
-          <p>
-            One company at a time. Set the pace, add your branches and bring
-            your people in when you’re ready.
-          </p>
-          <div className="auth-steps-preview">
-            <span>
-              <i className="auth-step-active">1</i> Company
-            </span>
-            <span className="auth-step-line" />
-            <span>
-              <i>2</i> Branches
-            </span>
-            <span className="auth-step-line" />
-            <span>
-              <i>3</i> Team
-            </span>
-          </div>
-        </div>
-        <div className="auth-aside-foot">
-          <span>mzansiMotorStack</span>
-          <span>Independent by design</span>
-        </div>
-      </aside>
-      <main className="auth-main">
-        <div className="auth-main-top">
-          <Link to="/" className="back-home">
-            <ArrowLeft size={16} /> Back to home
-          </Link>
-          <span>
-            Already have a workspace? <Link to="/login">Sign in</Link>
-          </span>
-        </div>
-        <div className="auth-content">
-          <div className="auth-content-brand">
-            <Brand />
-          </div>
-          {subtitle && (
-            <div className="eyebrow">
-              <span className="eyebrow-dot" /> {subtitle}
-            </div>
-          )}
-          {children}
-        </div>
-        <div className="auth-footer">
-          <span>
-            <ShieldCheck size={14} /> Your company setup stays yours
-          </span>
-          <Link to="/">
-            mzansiMotorStack <ArrowUpRight size={12} />
-          </Link>
-        </div>
-      </main>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  type = "text",
-  placeholder,
-  autoComplete,
-  value,
-  onChange,
-  required = true,
-  hint,
-  minLength,
-}: {
-  label: string;
-  type?: string;
-  placeholder?: string;
-  autoComplete?: string;
-  value: string;
-  onChange: (value: string) => void;
-  required?: boolean;
-  hint?: string;
-  minLength?: number;
-}) {
-  return (
-    <label className="field">
-      <span>{label}</span>
-      <input
-        type={type}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required={required}
-        minLength={minLength}
-      />
-      {hint && <small>{hint}</small>}
-    </label>
-  );
-}
-
-function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [notice, setNotice] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const navigate = useNavigate();
-  return (
-    <AuthFrame subtitle="WELCOME BACK">
-      <div className="auth-title-row">
-        <div>
-          <h1>Sign in to your workspace</h1>
-          <p>Pick up where your team left off.</p>
-        </div>
-      </div>
-      <form
-        className="auth-form"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setError("");
-          setNotice("");
-          if (appMode === "demo") {
-            setNotice(
-              "Demo mode does not sign in or create accounts. Open the sample workspace or continue through preview onboarding.",
-            );
-            return;
-          }
-          if (appMode !== "production" || !hasSupabaseConfig) {
-            setError(
-              "Production sign-in is unavailable until Supabase is configured. See the setup tutorial.",
-            );
-            return;
-          }
-          setBusy(true);
-          try {
-            const { error: signInError } = await signInWithSupabase(
-              email,
-              password,
-            );
-            if (signInError) throw signInError;
-            navigate("/app");
-          } catch (reason) {
-            setError(
-              reason instanceof Error
-                ? reason.message
-                : "We couldn’t sign you in. Check your details and try again.",
-            );
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
-        <Field
-          label="Work email"
-          type="email"
-          placeholder="you@yourdealership.co.za"
-          value={email}
-          onChange={setEmail}
-          autoComplete="email"
-        />
-        <Field
-          label="Password"
-          type="password"
-          placeholder="Enter your password"
-          value={password}
-          onChange={setPassword}
-          autoComplete="current-password"
-        />
-        <div className="form-between">
-          <span>Use your company account</span>
-          <Link to="/reset-password">Forgot password?</Link>
-        </div>
-        {notice && (
-          <p className="inline-notice" role="status">
-            {notice}
-          </p>
-        )}
-        {error && (
-          <p className="inline-notice wizard-error" role="alert">
-            {error} <Link to="/tutorial">Setup help</Link>
-          </p>
-        )}
-        <Button className="form-submit" type="submit" disabled={busy}>
-          {busy ? (
-            "Signing in…"
-          ) : (
-            <>
-              Sign in <ArrowRight size={16} />
-            </>
-          )}
-        </Button>
-        <div className="form-separator">
-          <span /> <small>NEW TO MZANSIMOTORSTACK?</small> <span />
-        </div>
-        <Button
-          to="/start"
-          variant="outline"
-          className="form-submit outline-submit"
-        >
-          Create a company workspace <Plus size={16} />
-        </Button>
-      </form>
-      <div className="auth-helper">
-        <CircleHelp size={16} />
-        <span>
-          Need help getting started?{" "}
-          <Link to="/start">Create your company space</Link> and set it up at
-          your pace.
-        </span>
-      </div>
-    </AuthFrame>
-  );
-}
-
-function ResetPassword() {
-  const [email, setEmail] = useState("");
-  const [notice, setNotice] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  return (
-    <AuthFrame subtitle="ACCOUNT ACCESS">
-      <h1>Reset your password</h1>
-      <p className="auth-intro">
-        Enter the work email linked to your company. We’ll show the next step
-        here.
-      </p>
-      <form
-        className="auth-form"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setNotice("");
-          setError("");
-          if (appMode === "demo") {
-            setNotice(
-              "Password recovery is unavailable in demo mode. No email was sent.",
-            );
-            return;
-          }
-          if (appMode !== "production" || !hasSupabaseConfig) {
-            setError(
-              "Password recovery is unavailable until Supabase is configured.",
-            );
-            return;
-          }
-          setBusy(true);
-          try {
-            const { error: resetError } = await sendPasswordReset(email);
-            if (resetError) throw resetError;
-            setNotice(
-              "If an account is registered with that email, Supabase Auth will send a password recovery link.",
-            );
-          } catch (reason) {
-            setError(
-              reason instanceof Error
-                ? reason.message
-                : "We couldn’t request password recovery.",
-            );
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
-        <Field
-          label="Work email"
-          type="email"
-          placeholder="you@yourdealership.co.za"
-          value={email}
-          onChange={setEmail}
-          autoComplete="email"
-        />
-        {notice && (
-          <p className="inline-notice" role="status">
-            {notice}
-          </p>
-        )}
-        {error && (
-          <p className="inline-notice wizard-error" role="alert">
-            {error}
-          </p>
-        )}
-        <Button className="form-submit" type="submit" disabled={busy}>
-          {busy ? (
-            "Requesting…"
-          ) : (
-            <>
-              Continue <ArrowRight size={16} />
-            </>
-          )}
-        </Button>
-        <Link className="form-back reset-back" to="/login">
-          <ArrowLeft size={14} /> Back to sign in
-        </Link>
-      </form>
-    </AuthFrame>
-  );
-}
-
 const navItems = [
   { to: "/app", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/app/stock", label: "Stock", icon: CarFront },
@@ -1125,7 +802,7 @@ type OnboardingRequestSummary = {
   tax_status: string;
 };
 
-function AppShell({ workspace, preview = false }: { workspace: Workspace | null; preview?: boolean }) {
+function AppShell({ workspace, preview = false, identityKey = "" }: { workspace: Workspace | null; preview?: boolean; identityKey?: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [accountMenu, setAccountMenu] = useState(false);
@@ -1138,16 +815,20 @@ function AppShell({ workspace, preview = false }: { workspace: Workspace | null;
   const [profileName, setProfileName] = useState("");
   const [liveLoading, setLiveLoading] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
   const isPreview = preview || appMode === "demo";
   const normalizedPath = location.pathname.startsWith("/demo")
     ? location.pathname.replace(/^\/demo/, "/app") || "/app"
     : location.pathname;
-  const activeWorkspace = isPreview ? workspace : liveWorkspace ?? workspace;
+  const activeWorkspace = isPreview ? workspace : liveWorkspace;
 
   useEffect(() => {
     if (isPreview || appMode !== "production" || !supabase) return;
     let active = true;
+    setLiveWorkspace(null);
+    setProfileName("");
+    setRequestSummary(null);
+    setServiceRequests([]);
+    setAppointmentStatus(null);
     setLiveLoading(true);
     void (async () => {
       try {
@@ -1180,16 +861,8 @@ function AppShell({ workspace, preview = false }: { workspace: Workspace | null;
       }
     })();
     return () => { active = false; };
-  }, [isPreview]);
+  }, [isPreview, identityKey]);
 
-  const signOut = async () => {
-    try {
-      await signOutFromSupabase();
-      navigate("/login", { replace: true });
-    } catch {
-      setToast("We couldn’t sign you out. Check your connection and try again.");
-    }
-  };
   const titleMap: Record<string, { title: string; sub: string }> = {
     "/app": {
       title: "Good morning, Alex",
@@ -1207,6 +880,10 @@ function AppShell({ workspace, preview = false }: { workspace: Workspace | null;
       title: "Your day",
       sub: "The work you have lined up for today.",
     },
+    "/app/components": {
+      title: "Component gallery",
+      sub: "Reusable controls and states used across the workspace.",
+    },
   };
   const page = isPreview
     ? titleMap[normalizedPath] ?? titleMap["/app"]
@@ -1216,8 +893,8 @@ function AppShell({ workspace, preview = false }: { workspace: Workspace | null;
   return (
     <div className="app-shell">
       <aside className={`app-sidebar ${menuOpen ? "sidebar-open" : ""}`}>
-        <div className="sidebar-head">
-          <Brand light />
+      <div className="sidebar-head">
+          <Brand light compact />
           <button
             className="sidebar-close icon-button"
             onClick={() => setMenuOpen(false)}
@@ -1255,16 +932,15 @@ function AppShell({ workspace, preview = false }: { workspace: Workspace | null;
           ))}
         </nav>
         <div className="sidebar-spacer" />
-        <div className="sidebar-help">
-          <span className="help-icon">
-            <CircleHelp size={17} />
-          </span>
-          <div>
-            <b>New here?</b>
-            <small>Build your workspace as you go.</small>
-          </div>
+        {isPreview ? <Link className="sidebar-help" to="/demo/components" onClick={() => setMenuOpen(false)}>
+          <span className="help-icon"><CircleHelp size={17} /></span>
+          <div><b>Component gallery</b><small>Explore the design system.</small></div>
           <ArrowUpRight size={14} />
-        </div>
+        </Link> : <div className="sidebar-help">
+          <span className="help-icon"><CircleHelp size={17} /></span>
+          <div><b>New here?</b><small>Build your workspace as you go.</small></div>
+          <ArrowUpRight size={14} />
+        </div>}
         <div className="profile-row">
             <span className="profile-avatar">{profileName ? profileName.split(/\s+/).map(part => part[0]).slice(0, 2).join("").toUpperCase() : "AM"}</span>
           <span className="profile-info">
@@ -1272,7 +948,7 @@ function AppShell({ workspace, preview = false }: { workspace: Workspace | null;
               <small>{isPreview ? "Workspace owner · Preview" : "Signed-in member"}</small>
           </span>
             <button className="icon-button account-menu-button" aria-label="Account options" aria-expanded={accountMenu} onClick={() => setAccountMenu(value => !value)}><MoreHorizontal size={18} /></button>
-            {accountMenu && <div className="account-popover"><button onClick={() => void signOut()}><LogOut size={14} /> Sign out</button></div>}
+            {accountMenu && <div className="account-popover"><Link to="/account">Account settings</Link>{!isPreview && <ClerkLogoutButton />}</div>}
         </div>
       </aside>
       {menuOpen && (
@@ -1300,8 +976,8 @@ function AppShell({ workspace, preview = false }: { workspace: Workspace | null;
             <div className={`searchbox ${showSearch ? "search-open" : ""}`}>
               <Search size={16} />
               <input
-                aria-label="Search workspace preview"
-                placeholder="Search anything..."
+                aria-label="Search this workspace view"
+                placeholder="Search this view..."
                 value={search}
                 onFocus={() => setShowSearch(true)}
                 onChange={(e) => setSearch(e.target.value)}
@@ -1335,10 +1011,11 @@ function AppShell({ workspace, preview = false }: { workspace: Workspace | null;
               </button>
             </div>
           )}
+          <div className="app-view-transition" key={normalizedPath}>
           <div className="app-heading">
             <div>
               <span className="dashboard-date">
-                {isPreview ? "SATURDAY, 7 NOVEMBER 2026 · JOHANNESBURG" : activeWorkspace?.branch || "SOUTH AFRICA"}
+                {isPreview ? `${new Intl.DateTimeFormat("en-ZA", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date()).toUpperCase()} | JOHANNESBURG` : activeWorkspace?.branch || "SOUTH AFRICA"}
               </span>
               <h1>{page.title}</h1>
               <p>{page.sub}</p>
@@ -1354,9 +1031,10 @@ function AppShell({ workspace, preview = false }: { workspace: Workspace | null;
               <Plus size={16} /> Quick action
             </Button>}
           </div>
-          {isPreview ? (normalizedPath === "/app" ? <Overview /> : normalizedPath === "/app/stock" ? <StockPage /> : normalizedPath === "/app/leads" ? <LeadsPage /> : <TasksPage />)
+          {isPreview ? (normalizedPath === "/app" ? <Overview /> : normalizedPath === "/app/stock" ? <StockPage search={search} /> : normalizedPath === "/app/leads" ? <LeadsPage search={search} /> : normalizedPath === "/app/components" ? <ComponentGallery /> : <TasksPage search={search} />)
             : normalizedPath === "/app" ? <ProductionWorkspaceHome workspace={activeWorkspace} request={requestSummary} services={serviceRequests} appointmentStatus={appointmentStatus} loading={liveLoading} />
               : <ProductionModuleEmpty title={page.title} workspace={activeWorkspace} />}
+          </div>
         </div>
       </main>
     </div>
@@ -1364,26 +1042,13 @@ function AppShell({ workspace, preview = false }: { workspace: Workspace | null;
 }
 
 function WorkspaceRoute({ workspace, preview = false }: { workspace: Workspace | null; preview?: boolean }) {
-  const [authState, setAuthState] = useState<"checking" | "signed_in" | "signed_out">("checking");
-  useEffect(() => {
-    if (preview || appMode === "demo") return;
-    if (appMode !== "production" || !hasSupabaseConfig || !supabase) {
-      setAuthState("signed_out");
-      return;
-    }
-    let active = true;
-    void supabase.auth.getSession().then(({ data }) => {
-      if (active) setAuthState(data.session ? "signed_in" : "signed_out");
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (active) setAuthState(session ? "signed_in" : "signed_out");
-    });
-    return () => { active = false; listener.subscription.unsubscribe(); };
-  }, [preview]);
   if (preview || appMode === "demo") return <AppShell workspace={workspace} preview />;
-  if (authState === "checking") return <main className="route-loading" role="status">Checking your sign-in…</main>;
-  if (authState === "signed_out") return <Navigate to="/login" replace />;
-  return <AppShell workspace={workspace} />;
+  return <ClerkProtected><LiveWorkspaceRoute /></ClerkProtected>;
+}
+
+function LiveWorkspaceRoute() {
+  const { userId } = useAuth();
+  return <AppShell workspace={null} identityKey={userId ?? ""} />;
 }
 
 function ProductionWorkspaceHome({ workspace, request, services, appointmentStatus, loading }: {
@@ -1404,7 +1069,7 @@ function ProductionWorkspaceHome({ workspace, request, services, appointmentStat
       {request && <div className="live-plan-summary"><div><small>REQUESTED PLAN</small><b>{planName} · {request.billing_interval === "annual" ? "Annual upfront" : "Monthly"}</b></div><div><small>PROPOSED SUBSCRIPTION</small><b>{formatCurrencyMinor(request.subscription_amount_minor)}{request.billing_interval === "monthly" ? " / month" : " / year"}</b></div><div><small>SETUP SERVICE</small><b>{formatCurrencyMinor(request.setup_fee_minor)}{request.setup_installments === 3 ? " · 3 instalments" : ""}</b></div></div>}
       {request?.tax_status === "configuration_required" && <p className="quote-pending">VAT treatment is still being configured, so the displayed prices are not a final payable quote.</p>}
     </section>
-    <section className="panel production-checklist"><div className="panel-header"><div><span className="panel-kicker">A GOOD PLACE TO BEGIN</span><h2>Your first steps</h2></div><span className="tasks-counter">Ready after activation</span></div><div className="production-todo-list"><ProductionTodo title="Add or import vehicles" detail="Supported CSV upload and duplicate review will be available after setup." /><ProductionTodo title="Capture your first customer enquiry" detail="Your lead workspace opens when the subscription is active." /><ProductionTodo title="Assign a customer follow-up" detail="Keep the next action visible for your team." /><ProductionTodo title="Invite your staff" detail="Team members join this dealership through an invitation." /><ProductionTodo title="Complete your selected service brief" detail="Website and social work needs an agreed scope and customer approval." /></div><p className="app-disclaimer">These are setup reminders. No demo records are shown in a production company workspace.</p></section>
+    <section className="panel production-checklist"><div className="panel-header"><div><span className="panel-kicker">A GOOD PLACE TO BEGIN</span><h2>Your first steps</h2></div><span className="tasks-counter">Ready after activation</span></div><div className="production-todo-list"><ProductionTodo title="Add or import vehicles" detail="Supported CSV upload and duplicate review will be available after setup." /><ProductionTodo title="Capture your first customer enquiry" detail="Your lead workspace opens when the subscription is active." /><ProductionTodo title="Assign a customer follow-up" detail="Keep the next action visible for your team." /><ProductionTodo title="Invite your staff" detail="Team members join this dealership through an invitation." /><ProductionTodo title="Complete your selected service brief" detail="Website and social work needs an agreed scope and customer approval." /></div><Button to="/app/team" variant="outline">Manage team access <ArrowRight size={15} /></Button><p className="app-disclaimer">These are setup reminders. No demo records are shown in a production company workspace.</p></section>
     {(appointmentStatus || services.length > 0) && <section className="panel service-progress-panel"><div className="panel-header"><div><span className="panel-kicker">ASSISTANCE AND OPTIONAL SERVICES</span><h2>Setup progress</h2></div></div>{appointmentStatus && <div className="service-progress-row"><span className="progress-step-icon"><Clock3 size={14} /></span><span><b>Meeting request</b><small>{appointmentStatus === "confirmed" ? "Appointment confirmed" : "Appointment requested · confirmation pending"}</small></span></div>}{services.map(service => <div className="service-progress-row" key={service.service_code}><span className="progress-step-icon"><Clock3 size={14} /></span><span><b>{serviceLabel[service.service_code] ?? service.service_code}</b><small>{service.status.replaceAll("_", " ")} · work does not begin until activation and scope approval</small></span></div>)}<div className="service-progress-row"><span className="progress-step-icon"><LockKeyhole size={14} /></span><span><b>Secure data upload</b><small>Not enabled yet · upload opens after storage setup</small></span></div></section>}
   </>;
 }
@@ -1425,176 +1090,88 @@ function Overview() {
   return (
     <>
       <div className="metric-grid">
-        <MetricCard
-          label="Vehicles in stock"
-          value="24"
-          trend="3 added this month"
-          icon={<CarFront size={17} />}
-          tone="lime"
-        />
-        <MetricCard
-          label="Open enquiries"
-          value="08"
-          trend="3 need a follow-up"
-          icon={<UsersRound size={17} />}
-          tone="lavender"
-        />
-        <MetricCard
-          label="Appointments today"
-          value="04"
-          trend="Next one at 10:30"
-          icon={<Command size={17} />}
-          tone="peach"
-        />
-        <MetricCard
-          label="Tasks to complete"
-          value="06"
-          trend="2 are due today"
-          icon={<Check size={17} />}
-          tone="blue"
-        />
+        <MetricCard label="Vehicles in stock" value="24" trend="3 added this month" icon={<CarFront size={17} />} tone="pine" />
+        <MetricCard label="Open enquiries" value="08" trend="3 need a follow-up" icon={<UsersRound size={17} />} tone="mint" />
+        <MetricCard label="Appointments today" value="04" trend="Next one at 10:30" icon={<Command size={17} />} tone="gold" />
+        <MetricCard label="Tasks to complete" value="06" trend="2 are due today" icon={<Check size={17} />} tone="paper" />
       </div>
       <div className="dashboard-grid">
-        <section className="panel attention-panel">
+        <section className="panel performance-panel" aria-labelledby="activity-heading">
           <div className="panel-header">
             <div>
-              <span className="panel-kicker">MAKE THE MOST OF TODAY</span>
-              <h2>Needs your attention</h2>
+              <span className="panel-kicker">WORKSPACE ACTIVITY | PREVIEW</span>
+              <h2 id="activity-heading">Activity this week</h2>
             </div>
-            <Button to="/app/tasks" variant="quiet">
-              View all <ArrowRight size={14} />
-            </Button>
+            <span className="performance-period">Last 7 days</span>
+          </div>
+          <div className="activity-content">
+            <div className="activity-chart" role="img" aria-label="Sample daily activity from Monday to Sunday, with Thursday highest and Sunday lowest">
+              <div className="chart-y-labels" aria-hidden="true"><span>12</span><span>8</span><span>4</span><span>0</span></div>
+              <div className="chart-bars" aria-hidden="true">
+                <div className="chart-gridline" /><div className="chart-gridline" /><div className="chart-gridline" /><div className="chart-gridline" />
+                <ChartBar day="MON" height="52%" /><ChartBar day="TUE" height="77%" /><ChartBar day="WED" height="45%" />
+                <ChartBar day="THU" height="91%" active /><ChartBar day="FRI" height="64%" /><ChartBar day="SAT" height="27%" /><ChartBar day="SUN" height="12%" />
+              </div>
+            </div>
+            <div className="activity-summary">
+              <div><span>New enquiries</span><b>18</b><small><ArrowUpRight size={13} /> Across the week</small></div>
+              <div><span>Follow-ups done</span><b>32</b><small><Check size={13} /> Across the week</small></div>
+            </div>
+          </div>
+          <p className="chart-summary">Sample activity totals for the preview week. Bars show daily workspace activity.</p>
+        </section>
+        <section className="panel attention-panel" aria-labelledby="attention-heading">
+          <div className="panel-header">
+            <div><span className="panel-kicker">MAKE THE MOST OF TODAY</span><h2 id="attention-heading">Needs your attention</h2></div>
+            <Button to="/app/tasks" variant="quiet">View all <ArrowRight size={14} /></Button>
           </div>
           <div className="attention-list">
-            <TaskRow
-              initials="TN"
-              person="Thandi Ndlovu"
-              detail="New enquiry · Toyota Corolla Cross"
-              time="12 min ago"
-              status="New lead"
-            />
-            <TaskRow
-              initials="LM"
-              person="Liam Moyo"
-              detail="Follow-up · Volkswagen Polo"
-              time="Due 10:30"
-              status="Follow up"
-            />
-            <TaskRow
-              initials="SK"
-              person="Sihle Khumalo"
-              detail="Vehicle prep · Ford EcoSport"
-              time="Due today"
-              status="In progress"
-            />
+            <TaskRow initials="TN" person="Thandi Ndlovu" detail="New enquiry - Toyota Corolla Cross" time="12 min ago" status="New lead" />
+            <TaskRow initials="LM" person="Liam Moyo" detail="Follow-up - Volkswagen Polo" time="Due 10:30" status="Follow up" />
+            <TaskRow initials="SK" person="Sihle Khumalo" detail="Vehicle prep - Ford EcoSport" time="Due today" status="In progress" />
           </div>
           <div className="attention-bottom">
-            <span className="attention-clock">
-              <Gauge size={15} /> Your team’s next step, at a glance.
-            </span>
-            <Link to="/app/tasks">
-              Open my day <ArrowUpRight size={13} />
-            </Link>
-          </div>
-        </section>
-        <section className="panel stock-panel">
-          <div className="panel-header">
-            <div>
-              <span className="panel-kicker">A FRESH LOOK AT STOCK</span>
-              <h2>Recently added</h2>
-            </div>
-            <Button to="/app/stock" variant="quiet">
-              View stock <ArrowRight size={14} />
-            </Button>
-          </div>
-          <div className="stock-list">
-            <StockRow
-              name="Volkswagen Polo"
-              detail="2021 · 1.0 TSI Comfortline"
-              price="R 239 900"
-              swatch="sand"
-            />
-            <StockRow
-              name="Toyota Corolla Cross"
-              detail="2022 · 1.8 XS CVT"
-              price="R 319 900"
-              swatch="green"
-            />
-            <StockRow
-              name="Ford EcoSport"
-              detail="2020 · 1.0 EcoBoost"
-              price="R 184 900"
-              swatch="blue"
-            />
-          </div>
-          <div className="stock-foot">
-            <span>
-              <i className="stock-dot dot-green" /> 18 available
-            </span>
-            <span>
-              <i className="stock-dot dot-amber" /> 4 in prep
-            </span>
-            <span>
-              <i className="stock-dot dot-grey" /> 2 reserved
-            </span>
+            <span className="attention-clock"><Gauge size={15} /> Your team's next step, at a glance.</span>
+            <Link to="/app/tasks">Open my day <ArrowUpRight size={13} /></Link>
           </div>
         </section>
       </div>
-      <section className="panel activity-panel">
+      <section className="panel stock-panel dashboard-stock-panel" aria-labelledby="recent-stock-heading">
         <div className="panel-header">
-          <div>
-            <span className="panel-kicker">THE LAST FEW DAYS</span>
-            <h2>Activity in your workspace</h2>
-          </div>
-          <button className="activity-filter">
-            This week <ChevronDown size={14} />
-          </button>
+          <div><span className="panel-kicker">INVENTORY | PREVIEW</span><h2 id="recent-stock-heading">Recently added</h2></div>
+          <Button to="/app/stock" variant="quiet">View stock <ArrowRight size={14} /></Button>
         </div>
-        <div className="activity-content">
-          <div className="activity-chart">
-            <div className="chart-y-labels">
-              <span>12</span>
-              <span>8</span>
-              <span>4</span>
-              <span>0</span>
-            </div>
-            <div className="chart-bars">
-              <div className="chart-gridline" />
-              <div className="chart-gridline" />
-              <div className="chart-gridline" />
-              <div className="chart-gridline" />
-              <ChartBar day="MON" height="52%" />
-              <ChartBar day="TUE" height="77%" />
-              <ChartBar day="WED" height="45%" />
-              <ChartBar day="THU" height="91%" active />
-              <ChartBar day="FRI" height="64%" />
-              <ChartBar day="SAT" height="27%" />
-              <ChartBar day="SUN" height="12%" />
-            </div>
-          </div>
-          <div className="activity-summary">
-            <div>
-              <span>New enquiries</span>
-              <b>18</b>
-              <small>
-                <ArrowUpRight size={13} /> Across the week
-              </small>
-            </div>
-            <div>
-              <span>Follow-ups done</span>
-              <b>32</b>
-              <small>
-                <Check size={13} /> Across the week
-              </small>
-            </div>
-          </div>
+        <div className="stock-list">
+          <StockRow name="Volkswagen Polo" detail="2021 - 1.0 TSI Comfortline" price="R 239 900" swatch="sand" />
+          <StockRow name="Toyota Corolla Cross" detail="2022 - 1.8 XS CVT" price="R 319 900" swatch="green" />
+          <StockRow name="Ford EcoSport" detail="2020 - 1.0 EcoBoost" price="R 184 900" swatch="blue" />
+        </div>
+        <div className="stock-foot">
+          <span><i className="stock-dot dot-green" /> 18 available</span>
+          <span><i className="stock-dot dot-amber" /> 4 in prep</span>
+          <span><i className="stock-dot dot-grey" /> 2 reserved</span>
         </div>
       </section>
-      <div className="app-disclaimer">
-        A sample workspace to explore the interface. No authentication, customer
-        data or dealership systems are connected.
-      </div>
+      <div className="app-disclaimer">Illustrative preview data only. No dealership systems are connected.</div>
     </>
+  );
+}
+
+function ComponentGallery() {
+  return (
+    <div className="component-gallery">
+      <section className="panel gallery-intro">
+        <img src="/brand/mzansi-road-mark.png" alt="" width="52" height="52" />
+        <div><span className="panel-kicker">MZANSIMOTORSTACK | FOUNDATIONS</span><h2>Built for a clearer day at the dealership</h2><p>Shared controls use the same pine, lime, warm paper and restrained gold from the brand system.</p></div>
+      </section>
+      <div className="gallery-grid">
+        <section className="panel gallery-panel"><div className="panel-header"><div><span className="panel-kicker">ACTIONS</span><h2>Buttons and links</h2></div></div><div className="gallery-actions"><Button to="/demo">Primary action <ArrowRight size={15} /></Button><Button to="/demo/stock" variant="dark">Open stock</Button><Button to="/demo/leads" variant="outline">Secondary action</Button><Button to="/demo/tasks" variant="quiet">Quiet action</Button></div></section>
+        <section className="panel gallery-panel"><div className="panel-header"><div><span className="panel-kicker">FIELDS</span><h2>Search and selection</h2></div></div><label className="gallery-field">Vehicle or customer<input type="search" placeholder="e.g. Corolla Cross" /></label><label className="gallery-field">Stock status<select defaultValue="available"><option value="available">Available</option><option value="prep">In preparation</option><option value="reserved">Reserved</option></select></label></section>
+        <section className="panel gallery-panel"><div className="panel-header"><div><span className="panel-kicker">STATUS</span><h2>Clear state labels</h2></div></div><div className="gallery-statuses"><span className="table-status status-available"><i />Available</span><span className="table-status status-reserved"><i />Reserved</span><span className="task-status status-new">New enquiry</span><span className="task-status status-progress">In preparation</span></div></section>
+        <section className="panel gallery-panel"><div className="panel-header"><div><span className="panel-kicker">RECORDS</span><h2>Vehicle summary</h2></div><span className="task-status status-available">Available</span></div><div className="gallery-vehicle"><div className="stock-vehicle stock-green"><CarSketch variant="green" /></div><div><b>Toyota Corolla Cross</b><span>2022 - 1.8 XS CVT</span></div><strong>R 319 900</strong></div></section>
+        <section className="panel gallery-panel gallery-wide"><div className="panel-header"><div><span className="panel-kicker">FEEDBACK</span><h2>Save and empty states</h2></div></div><div className="gallery-feedback" role="status"><Check size={16} /><span><b>Changes saved</b><small>Your vehicle details are up to date.</small></span></div><div className="gallery-empty"><CarFront size={18} /><b>No vehicles match this search</b><span>Try a different model or clear the stock filter.</span></div></section>
+      </div>
+    </div>
   );
 }
 
@@ -1708,242 +1285,95 @@ function CompletionToggle({ task }: { task: string }) {
   );
 }
 
-function StockPage() {
+function StockPage({ search }: { search: string }) {
+  const [filter, setFilter] = useState("All stock");
+  const vehicles = [
+    ["Volkswagen Polo", "1.0 TSI Comfortline ? 2021", "Available", "Today", "R 239 900", "sand"],
+    ["Toyota Corolla Cross", "1.8 XS CVT ? 2022", "Available", "Yesterday", "R 319 900", "green"],
+    ["Ford EcoSport", "1.0 EcoBoost ? 2020", "In preparation", "4 Nov", "R 184 900", "blue"],
+    ["Suzuki Swift", "1.2 GL ? 2022", "Reserved", "3 Nov", "R 169 900", "sand"],
+  ];
+  const filters = ["All stock", "Available", "In preparation", "Reserved"];
+  const rows = vehicles.filter((row) => {
+    const matchesFilter = filter === "All stock" || row[2] === filter;
+    const matchesSearch = `${row[0]} ${row[1]} ${row[2]}`.toLowerCase().includes(search.trim().toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
   return (
     <>
       <div className="table-toolbar">
-        <div className="table-filters">
-          <button className="filter-pill active">
-            All stock <span>24</span>
-          </button>
-          <button className="filter-pill">
-            Available <span>18</span>
-          </button>
-          <button className="filter-pill">
-            In preparation <span>4</span>
-          </button>
+        <div className="table-filters" role="group" aria-label="Filter vehicles by stock status">
+          {filters.map((item) => <button key={item} className={`filter-pill ${filter === item ? "active" : ""}`} aria-pressed={filter === item} onClick={() => setFilter(item)}>{item}<span>{item === "All stock" ? "24" : item === "Available" ? "18" : item === "In preparation" ? "4" : "2"}</span></button>)}
         </div>
-        <button className="activity-filter">
-          <Search size={14} /> Search stock
-        </button>
+        <span className="table-result-count" aria-live="polite">{rows.length} shown</span>
       </div>
-      <section className="panel data-panel">
-        <div className="data-table-head">
-          <span>VEHICLE</span>
-          <span>STOCK STATUS</span>
-          <span>ADDED</span>
-          <span>ASKING PRICE</span>
-          <span />
-        </div>
-        {[
-          [
-            "Volkswagen Polo",
-            "1.0 TSI Comfortline · 2021",
-            "Available",
-            "Today",
-            "R 239 900",
-            "sand",
-          ],
-          [
-            "Toyota Corolla Cross",
-            "1.8 XS CVT · 2022",
-            "Available",
-            "Yesterday",
-            "R 319 900",
-            "green",
-          ],
-          [
-            "Ford EcoSport",
-            "1.0 EcoBoost · 2020",
-            "In preparation",
-            "4 Nov",
-            "R 184 900",
-            "blue",
-          ],
-          [
-            "Suzuki Swift",
-            "1.2 GL · 2022",
-            "Reserved",
-            "3 Nov",
-            "R 169 900",
-            "sand",
-          ],
-        ].map((row) => (
-          <div className="data-table-row" key={row[0]}>
-            <div className="table-vehicle">
-              <div className={`stock-vehicle stock-${row[5]}`}>
-                <CarSketch variant={row[5] === "green" ? "green" : "sand"} />
-              </div>
-              <span>
-                <b>{row[0]}</b>
-                <small>{row[1]}</small>
-              </span>
-            </div>
-            <span
-              className={`table-status ${row[2] === "Available" ? "status-available" : row[2] === "Reserved" ? "status-reserved" : ""}`}
-            >
-              <i />
-              {row[2]}
-            </span>
-            <span className="table-muted">{row[3]}</span>
-            <b>{row[4]}</b>
-            <button
-              className="icon-button"
-              aria-label={`More actions for ${row[0]}`}
-            >
-              <MoreHorizontal size={17} />
-            </button>
-          </div>
-        ))}
+      <section className="panel data-panel local-scroll" aria-label="Preview vehicle inventory">
+        <div className="data-table-head"><span>VEHICLE</span><span>STOCK STATUS</span><span>ADDED</span><span>ASKING PRICE</span><span /></div>
+        {rows.map((row) => <div className="data-table-row" key={row[0]}>
+          <div className="table-vehicle"><div className={`stock-vehicle stock-${row[5]}`}><CarSketch variant={row[5] === "green" ? "green" : "sand"} /></div><span><b>{row[0]}</b><small>{row[1]}</small></span></div>
+          <span className={`table-status ${row[2] === "Available" ? "status-available" : row[2] === "Reserved" ? "status-reserved" : "status-progress"}`}><i />{row[2]}</span>
+          <span className="table-muted">{row[3]}</span><b className="currency-value">{row[4]}</b>
+          <button className="icon-button" aria-label={`More actions for ${row[0]}`}><MoreHorizontal size={17} /></button>
+        </div>)}
+        {rows.length === 0 && <div className="table-empty" role="status">No vehicles match this search and filter.</div>}
       </section>
-      <div className="app-disclaimer">
-        Sample vehicle details for preview only.
-      </div>
+      <div className="app-disclaimer">Sample vehicle details for preview only.</div>
     </>
   );
 }
-function LeadsPage() {
-  return (
-    <section className="panel data-panel">
-      <div className="table-toolbar">
-        <div className="table-filters">
-          <button className="filter-pill active">
-            All enquiries <span>08</span>
-          </button>
-          <button className="filter-pill">
-            New <span>3</span>
-          </button>
-          <button className="filter-pill">
-            Follow up <span>5</span>
-          </button>
-        </div>
-        <button className="activity-filter">
-          <Search size={14} /> Search people
-        </button>
+
+function LeadsPage({ search }: { search: string }) {
+  const [filter, setFilter] = useState("All enquiries");
+  const leads = [
+    ["Thandi Ndlovu", "Toyota Corolla Cross", "New enquiry", "12 min ago", "TN"],
+    ["Liam Moyo", "Volkswagen Polo", "Follow up", "Today, 09:15", "LM"],
+    ["Sihle Khumalo", "Ford EcoSport", "Appointment", "Yesterday", "SK"],
+    ["Amara Mwale", "Suzuki Swift", "Follow up", "Yesterday", "AM"],
+  ];
+  const filters = ["All enquiries", "New enquiry", "Follow up", "Appointment"];
+  const rows = leads.filter((row) => {
+    const matchesFilter = filter === "All enquiries" || row[2] === filter;
+    const matchesSearch = `${row[0]} ${row[1]} ${row[2]}`.toLowerCase().includes(search.trim().toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
+  return <section className="panel data-panel local-scroll" aria-label="Preview customer enquiries">
+    <div className="table-toolbar">
+      <div className="table-filters" role="group" aria-label="Filter enquiries by status">
+        {filters.map((item) => <button key={item} className={`filter-pill ${filter === item ? "active" : ""}`} aria-pressed={filter === item} onClick={() => setFilter(item)}>{item}<span>{item === "All enquiries" ? "08" : item === "New enquiry" ? "3" : item === "Follow up" ? "5" : "1"}</span></button>)}
       </div>
-      <div className="data-table-head lead-table-head">
-        <span>PERSON</span>
-        <span>INTERESTED IN</span>
-        <span>STATUS</span>
-        <span>LAST ACTIVITY</span>
-        <span />
-      </div>
-      {[
-        [
-          "Thandi Ndlovu",
-          "Toyota Corolla Cross",
-          "New enquiry",
-          "12 min ago",
-          "TN",
-        ],
-        ["Liam Moyo", "Volkswagen Polo", "Follow up", "Today, 09:15", "LM"],
-        ["Sihle Khumalo", "Ford EcoSport", "Appointment", "Yesterday", "SK"],
-        ["Amara Mwale", "Suzuki Swift", "Follow up", "Yesterday", "AM"],
-      ].map((row, i) => (
-        <div className="data-table-row lead-table-row" key={row[0]}>
-          <div className="lead-person">
-            <span className={`task-avatar lead-color-${i}`}>{row[4]}</span>
-            <span>
-              <b>{row[0]}</b>
-              <small>Buyer enquiry · Preview</small>
-            </span>
-          </div>
-          <span className="lead-car-name">{row[1]}</span>
-          <span className={`task-status ${i === 0 ? "status-new" : ""}`}>
-            {row[2]}
-          </span>
-          <span className="table-muted">{row[3]}</span>
-          <button
-            className="icon-button"
-            aria-label={`More actions for ${row[0]}`}
-          >
-            <MoreHorizontal size={17} />
-          </button>
-        </div>
-      ))}
+      <span className="table-result-count" aria-live="polite">{rows.length} shown</span>
+    </div>
+    <div className="data-table-head lead-table-head"><span>PERSON</span><span>INTERESTED IN</span><span>STATUS</span><span>LAST ACTIVITY</span><span /></div>
+    {rows.map((row, i) => <div className="data-table-row lead-table-row" key={row[0]}>
+      <div className="lead-person"><span className={`task-avatar lead-color-${i}`}>{row[4]}</span><span><b>{row[0]}</b><small>Buyer enquiry ? Preview</small></span></div>
+      <span className="lead-car-name">{row[1]}</span><span className={`task-status ${row[2] === "New enquiry" ? "status-new" : row[2] === "Appointment" ? "status-available" : "status-progress"}`}>{row[2]}</span><span className="table-muted">{row[3]}</span>
+      <button className="icon-button" aria-label={`More actions for ${row[0]}`}><MoreHorizontal size={17} /></button>
+    </div>)}
+    {rows.length === 0 && <div className="table-empty" role="status">No enquiries match this search and filter.</div>}
+  </section>;
+}
+
+function TasksPage({ search }: { search: string }) {
+  const tasks = [
+    ["Follow up with Liam Moyo", "Volkswagen Polo enquiry ? confirm viewing time", "10:30", "LM"],
+    ["Check in on Ford EcoSport prep", "Workshop update ? Sihle is assigned", "12:00", "SK"],
+    ["Review the new enquiry from Thandi", "Toyota Corolla Cross ? today?s first response", "14:00", "TN"],
+  ];
+  const rows = tasks.filter((row) => `${row[0]} ${row[1]}`.toLowerCase().includes(search.trim().toLowerCase()));
+  return <>
+    <div className="myday-overview">
+      <div className="day-date-card"><span>SUNDAY</span><b>08</b><small>NOVEMBER 2026</small><div><i /> JOHANNESBURG, SA</div></div>
+      <div className="myday-stats"><div><span>To do today</span><b>06</b><small>Across your workspace</small></div><div><span>Completed</span><b>04</b><small>Nice work so far</small></div><div><span>Coming up next</span><b>10:30</b><small>Buyer follow-up</small></div></div>
+    </div>
+    <section className="panel myday-panel">
+      <div className="panel-header"><div><span className="panel-kicker">A GOOD PLACE TO BEGIN</span><h2>Your next steps</h2></div><span className="tasks-counter">{rows.length} shown</span></div>
+      {rows.map((row) => <div className="myday-row" key={row[0]}>
+        <CompletionToggle task={row[0]} /><div><b>{row[0]}</b><span>{row[1]}</span></div><span className="myday-time">{row[2]}</span><span className="task-avatar">{row[3]}</span><button className="icon-button" aria-label={`More actions for ${row[0]}`}><MoreHorizontal size={17} /></button>
+      </div>)}
+      {rows.length === 0 && <div className="table-empty" role="status">No tasks match this search.</div>}
     </section>
-  );
-}
-function TasksPage() {
-  return (
-    <>
-      <div className="myday-overview">
-        <div className="day-date-card">
-          <span>SATURDAY</span>
-          <b>07</b>
-          <small>NOVEMBER 2026</small>
-          <div>
-            <i /> JOHANNESBURG, SA
-          </div>
-        </div>
-        <div className="myday-stats">
-          <div>
-            <span>To do today</span>
-            <b>06</b>
-            <small>Across your workspace</small>
-          </div>
-          <div>
-            <span>Completed</span>
-            <b>04</b>
-            <small>Nice work so far</small>
-          </div>
-          <div>
-            <span>Coming up next</span>
-            <b>10:30</b>
-            <small>Buyer follow-up</small>
-          </div>
-        </div>
-      </div>
-      <section className="panel myday-panel">
-        <div className="panel-header">
-          <div>
-            <span className="panel-kicker">A GOOD PLACE TO BEGIN</span>
-            <h2>Your next steps</h2>
-          </div>
-          <span className="tasks-counter">3 open</span>
-        </div>
-        {[
-          [
-            "Follow up with Liam Moyo",
-            "Volkswagen Polo enquiry · confirm viewing time",
-            "10:30",
-            "LM",
-          ],
-          [
-            "Check in on Ford EcoSport prep",
-            "Workshop update · Sihle is assigned",
-            "12:00",
-            "SK",
-          ],
-          [
-            "Review the new enquiry from Thandi",
-            "Toyota Corolla Cross · today’s first response",
-            "14:00",
-            "TN",
-          ],
-        ].map((row) => (
-          <div className="myday-row" key={row[0]}>
-            <CompletionToggle task={row[0]} />
-            <div>
-              <b>{row[0]}</b>
-              <span>{row[1]}</span>
-            </div>
-            <span className="myday-time">{row[2]}</span>
-            <span className="task-avatar">{row[3]}</span>
-            <button
-              className="icon-button"
-              aria-label={`More actions for ${row[0]}`}
-            >
-              <MoreHorizontal size={17} />
-            </button>
-          </div>
-        ))}
-      </section>
-      <div className="app-disclaimer">
-        The sample tasks are local preview content; completion isn’t saved.
-      </div>
-    </>
-  );
+    <div className="app-disclaimer">The sample tasks are local preview content; completion is not saved.</div>
+  </>;
 }
 
 export default function App() {
@@ -1956,37 +1386,19 @@ export default function App() {
       <Route path="/demo/stock" element={<AppShell workspace={null} preview />} />
       <Route path="/demo/leads" element={<AppShell workspace={null} preview />} />
       <Route path="/demo/tasks" element={<AppShell workspace={null} preview />} />
+      <Route path="/demo/components" element={<AppShell workspace={null} preview />} />
       <Route path="/tutorial" element={<Tutorial />} />
       <Route path="/privacy" element={<PrivacyNotice />} />
       <Route path="/terms" element={<TermsNotice />} />
-      <Route
-        path="/start"
-        element={
-          <OnboardingWizard
-            onSubmitted={(name) =>
-              setWorkspace({ name, email: "", branch: "Default dealership" })
-            }
-          />
-        }
-      />
-      <Route
-        path="/invite"
-        element={
-          <InviteAccept
-            onJoined={() =>
-              setWorkspace({
-                name: "Dealership workspace",
-                email: "",
-                branch: "Company workspace",
-              })
-            }
-          />
-        }
-      />
-      <Route path="/auth/callback" element={<AuthReturn />} />
-      <Route path="/reset-password/confirm" element={<PasswordUpdate />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/start" element={<Navigate to="/signup" replace />} />
+      <Route path="/invite" element={<Navigate to="/accept-invite" replace />} />
+      <Route path="/signup/*" element={<ClerkSignUpPage />} />
+      <Route path="/login/*" element={<ClerkSignInPage />} />
+      <Route path="/account/*" element={<ClerkProtected><AccountPage /></ClerkProtected>} />
+      <Route path="/accept-invite" element={<AcceptInvitePage />} />
+      <Route path="/onboarding" element={<ClerkProtected><OnboardingWizard onSubmitted={(name) => setWorkspace({ name, email: "", branch: "Default dealership" })} /></ClerkProtected>} />
+      <Route path="/app/team" element={<ClerkProtected><InviteStaffPage /></ClerkProtected>} />
+      <Route path="/access-denied" element={<main className="clerk-auth-page"><p className="auth-kicker">ACCESS</p><h1>You don’t have access to this dealership</h1><p>Ask a dealership owner to invite you with the correct work email and role.</p><Link to="/account">Manage your account</Link></main>} />
       <Route path="/app" element={<WorkspaceRoute workspace={workspace} />} />
       <Route path="/app/stock" element={<WorkspaceRoute workspace={workspace} />} />
       <Route path="/app/leads" element={<WorkspaceRoute workspace={workspace} />} />

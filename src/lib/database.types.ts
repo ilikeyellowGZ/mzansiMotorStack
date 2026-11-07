@@ -1244,6 +1244,7 @@ export type Database = {
           accepted_by_user_id: string | null
           created_at: string
           email: string
+          revoked_at: string | null
           expires_at: string
           id: string
           invited_by_user_id: string
@@ -1257,6 +1258,7 @@ export type Database = {
           accepted_by_user_id?: string | null
           created_at?: string
           email: string
+          revoked_at?: string | null
           expires_at: string
           id?: string
           invited_by_user_id: string
@@ -1270,6 +1272,7 @@ export type Database = {
           accepted_by_user_id?: string | null
           created_at?: string
           email?: string
+          revoked_at?: string | null
           expires_at?: string
           id?: string
           invited_by_user_id?: string
@@ -1627,7 +1630,10 @@ export type Database = {
       }
       profiles: {
         Row: {
+          clerk_user_id: string | null
           created_at: string
+          email: string | null
+          email_verified_at: string | null
           full_name: string
           id: string
           marketing_opt_in: boolean
@@ -1638,9 +1644,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          clerk_user_id?: string | null
           created_at?: string
+          email?: string | null
+          email_verified_at?: string | null
           full_name?: string
-          id: string
+          id?: string
           marketing_opt_in?: boolean
           privacy_acknowledged_at?: string | null
           privacy_version?: string | null
@@ -1649,7 +1658,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          clerk_user_id?: string | null
           created_at?: string
+          email?: string | null
+          email_verified_at?: string | null
           full_name?: string
           id?: string
           marketing_opt_in?: boolean
@@ -2811,6 +2823,10 @@ export type Database = {
         Args: { p_token: string }
         Returns: string
       }
+      is_organization_owner: {
+        Args: { p_organization_id: string }
+        Returns: boolean
+      }
       is_organization_manager: {
         Args: { p_organization_id: string }
         Returns: boolean
@@ -2819,11 +2835,19 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: boolean
       }
+      is_organization_salesperson: {
+        Args: { p_organization_id: string }
+        Returns: boolean
+      }
       save_onboarding_terms: {
         Args: { p_privacy_version: string; p_terms_version: string }
         Returns: undefined
       }
       submit_onboarding_request: { Args: { p_answers: Json }; Returns: Json }
+      suspend_dealership_member: {
+        Args: { p_member_profile_id: string; p_organization_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

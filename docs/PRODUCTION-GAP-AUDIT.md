@@ -1,28 +1,33 @@
-# Production gap audit
+﻿# Production gap audit
 
-## Working in this repository
+## Implemented in the repository
 
-- Responsive seven-step owner onboarding, optional website and social selections, exact rand pricing, setup-fee options, and assistance appointment requests.
-- Explicit demo mode with session-only draft persistence and fictional data isolated to `/demo` routes.
-- Supabase Auth client wiring, email-confirmation return handling, password recovery, invite acceptance, draft persistence, and a production signup gate for approved legal notices.
-- Applied Supabase migrations for tenant membership and onboarding plus dealership CRM, stock, sales, service delivery, billing state, notifications, social account references, private Storage buckets, and tenant RLS. Local and remote migration histories match.
-- A server-side idempotent onboarding request function. It snapshots subscription and setup prices and never charges or activates an entitlement.
-- A Netlify SPA fallback and baseline response headers.
+- React/Vite public site, isolated sample demo, seven-step owner onboarding and exact current plan/service pricing.
+- Clerk routes and supported components for email/password signup, verification, login, password recovery and profile management.
+- Native Clerk–Supabase JWT integration using the Clerk session token. Supabase profiles preserve internal UUIDs and map a verified Clerk `sub` through server-only provisioning.
+- Prepared Clerk identity migration with a fail-closed preflight for existing Supabase Auth users, migrated authorization helpers, owner/manager/salesperson policies, private Storage role policies and a separate platform-admin table.
+- Server-verified Clerk provisioning, invitation checking/creation/revocation/acceptance, Resend delivery, and membership suspension functions.
+- Netlify SPA fallback, Supabase schema, onboarding/payment records and tenant RLS from the existing migrations.
 
-## Still required before real customer onboarding
+## Release blockers
 
 | Area | Remaining work |
 | --- | --- |
-| Supabase project | Project is linked and the migrations are applied. Configure production Auth URLs, email SMTP, approved legal notice versions, tax treatment, and AI/messaging allowances. The live project uses PostgreSQL 17; no local Docker database was available. |
-| Legal and pricing | Replace preview notices with approved terms and privacy text. Confirm fee scope, annual discount terms, tax treatment, and billing dates. Production signup stays blocked until the versioned notices are approved. |
-| Email | Configure a verified sender and Resend-backed SMTP for Supabase Auth. Confirmation and recovery email templates and delivery monitoring still need provider setup. Appointment request-received and service emails are not implemented. |
-| Payments | Server-side Paystack checkout, transaction verification, signed webhook processing, recurring card subscriptions, and setup instalment schedules are implemented locally. Apply the new migration and deploy the Edge Functions, configure Paystack secrets/webhook URL, set approved tax treatment, then test duplicate/failure/cancel/retry cases before live use. Checkout refuses a quote whose tax treatment is still `configuration_required`. |
-| Storage and imports | Private buckets and tenant policies are configured. Signed upload flows, file scanning, CSV preview, column mapping, validation, duplicate review, and commit flow remain to be implemented. The UI says uploads are unavailable. |
-| Staff invitations | Invitation acceptance is implemented for a valid email/token. An authenticated owner/manager invitation-creation screen and trusted email-sending function are not implemented yet. |
-| Service delivery | Onboarding creates idempotent service request records, but staff task assignment, quotes, approval queue/calendar, website delivery workflow, and social publishing workflow still need operational tooling. |
-| Core CRM | Stock, leads, tasks, and reporting routes show empty production states. Tenant-scoped create/read/update flows and role permissions for those records remain future work. |
-| Hosting and operations | Connect a Netlify site, add the public Supabase URL and publishable key, set Auth redirect URLs, test DNS/TLS and production email, and establish backups, monitoring, retention, incident response, and restore checks. No deployment was made. |
+| Clerk and Supabase | Create dev/prod Clerk instances, set email/password verification, configure exact domains and the native Supabase third-party provider in both dashboards. Add public keys to Netlify and server secrets to Supabase Functions. |
+| Database cutover | Review the zero-user preflight again, back up the database, apply `20261107210000_clerk_third_party_identity.sql`, and verify its policies/advisors. The migration has not been applied. If any Supabase Auth users exist, stop and prepare a verified account-activation/mapping plan; do not merge by email. |
+| Edge Functions | Deploy the Clerk and invitation functions with gateway JWT verification enabled. Test invalid, expired, wrong-issuer and wrong-authorized-party tokens directly. Configure `APP_ALLOWED_ORIGINS`, `CLERK_ISSUER`, `CLERK_SECRET_KEY` and server-only Supabase secret. |
+| Email | Verify a Resend sender and configure `RESEND_API_KEY` and `RESEND_FROM_EMAIL`. Test invite delivery, bounces and revoked links. Clerk handles its own verification/recovery email configuration. |
+| Onboarding and legal | Approve/publish real service terms and privacy notices and set matching version values. Confirm tax treatment and pricing configuration before enabling checkout. |
+| Payment | Deploy the Paystack migration and functions, configure test secrets/webhook, then test payment success, failure, retries and duplicate webhooks. Checkout must remain blocked until inclusive tax treatment is configured. |
+| Storage and operations | Storage policies exist. Signed upload, scanning, CSV import and operational create/edit screens remain unimplemented. |
+| Production hosting | Connect Netlify, set production-only browser values, and verify deep links and flows on the production hostname. No deployment has been made. |
 
-## Release boundary
+## Data assessment and rollback
 
-Do not interpret an onboarding request as a paid subscription, confirmed appointment, accepted quote, or started service. The project currently records requests only. The demo remains separate from customer records.
+A read-only count of the linked Supabase project on 7 November 2026 found zero Auth users, organizations, memberships and onboarding requests. That is an empty test baseline. The migration keeps all UUID foreign-key relationships pointed at profiles, but refuses to cut over if Auth users exist, because moving an account without a verified Clerk activation could strand or incorrectly merge a real user's identity.
+
+For the current empty baseline, stop Clerk signup, roll back the Netlify application build and restore the pre-migration Supabase backup if schema restoration is required. Do not improvise a reverse migration. Supabase Auth itself cannot be disabled at the project level; the obsolete app-level signup/login calls have been removed.
+
+## Test boundary
+
+`npm run build` passes and `npm test` passes 19 local tests. Auth-provider flows, deployed Edge Functions, Resend delivery, two-dealership API isolation, cross-tenant Storage, session expiry and payment failure access have not been live-tested because no provider credentials/functions were configured in this session. See [the setup guide](CLERK-AUTH-SETUP.md) for the development verification checklist.

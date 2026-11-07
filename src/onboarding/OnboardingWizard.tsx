@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useUser } from "@clerk/react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -6,16 +7,15 @@ import {
   Check,
   CircleHelp,
   Clock3,
-  MailCheck,
   ShieldCheck,
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   appMode,
-  getProductionClient,
   hasApprovedLegalNotices,
   hasSupabaseConfig,
   isPreviewMode,
+  supabase,
 } from "../lib/config";
 import {
   calculateQuote,
@@ -32,10 +32,7 @@ import {
 } from "../lib/onboarding";
 import {
   acceptTerms,
-  acceptInvitation,
   loadOnboardingDraft,
-  registerInvitedAccount,
-  registerOwner,
   saveOnboardingDraft,
   submitOnboarding,
   startPaystackCheckout,
@@ -95,15 +92,11 @@ const provinceOptions = [
   "Western Cape",
 ];
 
-function BrandMark() {
+function BrandMark({ compact = false, light = false }: { compact?: boolean; light?: boolean }) {
   return (
-    <Link className="brand" to="/" aria-label="mzansiMotorStack home">
-      <span className="brand-mark">
-        <Building2 size={17} />
-      </span>
-      <span>
-        mzansi<span className="brand-mid">Motor</span>Stack
-      </span>
+    <Link className={`brand onboarding-brand ${light ? "onboarding-brand-light" : ""}`} to="/" aria-label="MzansiMotorStack home">
+      {compact ? <img className="brand-road-mark" src="/brand/mzansi-road-mark.png" alt="" width="32" height="32" /> : <img className="brand-wordmark" src="/brand/mzansi-motorstack-wordmark.png" alt="" width="180" height="60" />}
+      {light && <span>MzansiMotorStack</span>}
     </Link>
   );
 }
@@ -118,7 +111,7 @@ function WizardFrame({
   return (
     <div className="auth-page wizard-page">
       <aside className="auth-aside">
-        <BrandMark />
+        <BrandMark compact light />
         <div className="auth-aside-content">
           <div className="auth-orb">
             <Building2 size={46} strokeWidth={1.2} />
@@ -422,11 +415,12 @@ function ConfigurationRequired() {
       </div>
       <h1 className="config-title">Connect your workspace first</h1>
       <p className="auth-intro">
-        Production onboarding needs Supabase Auth and database settings. This
+        Production onboarding needs Clerk and Supabase settings. This
         app will not create a pretend account or store your details locally.
       </p>
       <div className="config-card">
         <b>Required configuration</b>
+        <code>VITE_CLERK_PUBLISHABLE_KEY</code>
         <code>VITE_SUPABASE_URL</code>
         <code>VITE_SUPABASE_PUBLISHABLE_KEY</code>
         <small>
@@ -453,17 +447,16 @@ export function OnboardingWizard({
   onSubmitted: (name: string) => void;
 }) {
   const navigate = useNavigate();
+  const { user, isLoaded: clerkLoaded } = useUser();
   const [searchParams] = useSearchParams();
   const paymentReference = searchParams.get("reference") ?? searchParams.get("trxref");
   const [answers, setAnswers] = useState<OnboardingAnswers>(emptyAnswers);
-  const [password, setPassword] = useState("");
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(appMode === "demo" ? 1 : 2);
   const [userReady, setUserReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState("saved");
   const [error, setError] = useState("");
-  const [emailPending, setEmailPending] = useState(false);
   const [submitted, setSubmitted] = useState<SubmitRequestResult | null>(null);
 
   useEffect(() => {
@@ -471,23 +464,34 @@ export function OnboardingWizard({
     async function restore() {
       setLoading(true);
       try {
-        if (appMode === "production" && hasSupabaseConfig) {
-          const client = getProductionClient();
-          const { data } = await client.auth.getUser();
-          if (data.user?.email_confirmed_at) {
-            setUserReady(true);
-            const draft = await loadOnboardingDraft();
-            if (draft) {
-              setAnswers({ ...emptyAnswers, ...draft.answers });
-              setStep(Math.min(7, Math.max(2, draft.currentStep)));
-            } else {
-              setAnswers((current) => ({
-                ...current,
-                fullName: String(data.user.user_metadata.full_name ?? ""),
-                email: data.user.email ?? "",
-              }));
-              setStep(2);
-            }
+        if (appMode === "production" && hasSupabaseConfig && clerkLoaded && user) {
+          const email = user.primaryEmailAddress;
+          if (email?.verification?.status !== "verified") {
+            setError("Verify your email address in your Clerk account before continuing.");
+            return;
+          }
+          if (!supabase) throw new Error("Supabase is not configured.");
+          setUserReady(true);
+          const { data: memberships, error: membershipError } = await supabase.from("organization_memberships")
+            .select("organization_id").eq("status", "active").limit(1);
+          if (membershipError) throw membershipError;
+          if (memberships?.length) {
+            navigate("/app", { replace: true });
+            return;
+          }
+          const { data: invitation, error: invitationError } = await supabase.functions.invoke("check-pending-invitation", { body: {} });
+          if (invitationError) throw invitationError;
+          if (invitation?.hasInvitation) {
+            navigate("/accept-invite?pending=1", { replace: true });
+            return;
+          }
+          const draft = await loadOnboardingDraft();
+          if (draft) {
+            setAnswers({ ...emptyAnswers, ...draft.answers, email: email.emailAddress, fullName: user.fullName ?? "" });
+            setStep(Math.min(7, Math.max(2, draft.currentStep)));
+          } else {
+            setAnswers((current) => ({ ...current, fullName: user.fullName ?? "", email: email.emailAddress }));
+            setStep(2);
           }
         } else if (isPreviewMode) {
           const draft = await loadOnboardingDraft();
@@ -498,19 +502,14 @@ export function OnboardingWizard({
           }
         }
       } catch {
-        if (active)
-          setError(
-            "We couldn’t restore your saved progress. Check your connection and try again.",
-          );
+        if (active) setError("We couldn?t restore your saved progress. Check your connection and try again.");
       } finally {
-        if (active) setLoading(false);
+        if (active && (isPreviewMode || clerkLoaded)) setLoading(false);
       }
     }
     void restore();
-    return () => {
-      active = false;
-    };
-  }, []);
+    return () => { active = false; };
+  }, [clerkLoaded, user, navigate]);
 
   useEffect(() => {
     if (loading || !userReady || !paymentReference || submitted) return;
@@ -586,32 +585,9 @@ export function OnboardingWizard({
 
   const handleAccount = async (event: React.FormEvent) => {
     event.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      const result = await registerOwner({
-        email: answers.email,
-        password,
-        fullName: answers.fullName,
-        marketingOptIn: answers.marketingOptIn,
-      });
-      setPassword("");
-      if (result.emailConfirmationRequired) {
-        setEmailPending(true);
-        return;
-      }
-      setUserReady(true);
-      setStep(2);
-      if (isPreviewMode) await saveOnboardingDraft({ currentStep: 2, answers });
-    } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : "We couldn’t create the account. Please try again.",
-      );
-    } finally {
-      setBusy(false);
-    }
+    setUserReady(true);
+    setStep(2);
+    if (isPreviewMode) await saveOnboardingDraft({ currentStep: 2, answers });
   };
 
   const next = (event: React.FormEvent) => {
@@ -674,9 +650,14 @@ export function OnboardingWizard({
   const submitRequest = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!answers.plan || !quote) return;
+    if (!answers.termsAccepted || !answers.privacyAcknowledged) {
+      setError("Accept the service terms and acknowledge the privacy notice before continuing.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
+      if (!isPreviewMode) await acceptTerms();
       const result = await submitOnboarding(answers);
       await saveOnboardingDraft({
         currentStep: 7,
@@ -712,40 +693,6 @@ export function OnboardingWizard({
       <WizardFrame>
         <div className="wizard-loading" role="status">
           Loading your saved progress…
-        </div>
-      </WizardFrame>
-    );
-
-  if (emailPending)
-    return (
-      <WizardFrame step={1}>
-        <div className="email-pending-card">
-          <span className="email-pending-icon">
-            <MailCheck size={24} />
-          </span>
-          <div className="eyebrow">
-            <span className="eyebrow-dot" /> ONE MORE STEP
-          </div>
-          <h1>Check your inbox</h1>
-          <p>
-            We’ve requested an email verification link for{" "}
-            <b>{answers.email}</b>. Follow that link to confirm your address and
-            resume your setup.
-          </p>
-          <div className="form-note">
-            <Clock3 size={16} />
-            <span>
-              Can’t find it? Check your spam folder. The link returns you to
-              this onboarding flow.
-            </span>
-          </div>
-          <Link className="form-back" to="/login">
-            <ArrowLeft size={14} /> Return to sign in
-          </Link>
-          <p className="auth-legal">
-            If email delivery is not configured for this Supabase project, no
-            message will arrive. No dealership has been created yet.
-          </p>
         </div>
       </WizardFrame>
     );
@@ -837,101 +784,11 @@ export function OnboardingWizard({
 
       {currentStep === 1 && (
         <form className="auth-form wizard-form" onSubmit={handleAccount}>
-          <TextField
-            label="Full name"
-            value={answers.fullName}
-            onChange={(value) => update("fullName", value)}
-            autoComplete="name"
-            placeholder="Your name and surname"
-            required
-          />
-          <TextField
-            label="Email address"
-            type="email"
-            value={answers.email}
-            onChange={(value) => update("email", value)}
-            autoComplete="email"
-            placeholder="you@yourdealership.co.za"
-            required
-          />
-          <TextField
-            label="Password"
-            type="password"
-            value={password}
-            onChange={setPassword}
-            autoComplete="new-password"
-            placeholder="At least 8 characters"
-            min="8"
-            required
-          />
-          <label className="consent-check">
-            <input
-              type="checkbox"
-              checked={answers.termsAccepted}
-              onChange={(event) =>
-                update("termsAccepted", event.target.checked)
-              }
-              required
-            />
-            <span>
-              I accept the{" "}
-              <Link to="/terms" target="_blank">
-                service terms
-              </Link>
-              .
-            </span>
-          </label>
-          <label className="consent-check">
-            <input
-              type="checkbox"
-              checked={answers.privacyAcknowledged}
-              onChange={(event) =>
-                update("privacyAcknowledged", event.target.checked)
-              }
-              required
-            />
-            <span>
-              I have read the{" "}
-              <Link to="/privacy" target="_blank">
-                privacy notice
-              </Link>
-              .
-            </span>
-          </label>
-          <label className="consent-check optional">
-            <input
-              type="checkbox"
-              checked={answers.marketingOptIn}
-              onChange={(event) =>
-                update("marketingOptIn", event.target.checked)
-              }
-            />
-            <span>
-              Send me occasional product updates and useful dealership tips.
-              Optional.
-            </span>
-          </label>
-          <p className="form-note">
-            <ShieldCheck size={15} />
-            <span>
-              Your password is sent to Supabase Auth for account creation. It is
-              never included in the saved onboarding draft.
-            </span>
-          </p>
-          <WizardButton type="submit" disabled={busy}>
-            {busy ? (
-              "Creating account…"
-            ) : (
-              <>
-                Create account and continue <ArrowRight size={15} />
-              </>
-            )}
-          </WizardButton>
-          <p className="auth-legal">
-            Invited to an existing dealership?{" "}
-            <Link to="/invite">Accept your invitation</Link> instead of creating
-            a new dealership.
-          </p>
+          <TextField label="Full name" value={answers.fullName} onChange={(value) => update("fullName", value)} autoComplete="name" required />
+          <TextField label="Email address" type="email" value={answers.email} onChange={(value) => update("email", value)} autoComplete="email" required />
+          <p className="form-note"><ShieldCheck size={15} /><span>The sample demo keeps this draft in this browser session only. Live accounts are managed through Clerk.</span></p>
+          <WizardButton type="submit">Continue <ArrowRight size={15} /></WizardButton>
+          <p className="auth-legal">Already have an account? <Link to="/login">Sign in</Link>. Invited to a dealership? <Link to="/accept-invite">Accept your invitation</Link>.</p>
         </form>
       )}
 
@@ -1826,6 +1683,14 @@ export function OnboardingWizard({
               the subscription renewal date.
             </small>
           </div>
+          <label className="consent-check">
+            <input type="checkbox" checked={answers.termsAccepted} onChange={(event) => update("termsAccepted", event.target.checked)} required />
+            <span>I accept the <Link to="/terms" target="_blank">service terms</Link>.</span>
+          </label>
+          <label className="consent-check">
+            <input type="checkbox" checked={answers.privacyAcknowledged} onChange={(event) => update("privacyAcknowledged", event.target.checked)} required />
+            <span>I have read the <Link to="/privacy" target="_blank">privacy notice</Link>.</span>
+          </label>
           <label className="consent-check final-confirm">
             <input type="checkbox" required />
             <span>
@@ -1934,66 +1799,6 @@ function setupMethodLabel(value: SetupMethod) {
   }[value];
 }
 
-export function AuthReturn() {
-  const navigate = useNavigate();
-  const [message, setMessage] = useState("Confirming your email address…");
-  useEffect(() => {
-    let active = true;
-    async function finish() {
-      try {
-        const client = getProductionClient();
-        const { data, error } = await client.auth.getSession();
-        if (error) throw error;
-        const user = data.session?.user;
-        if (!user?.email_confirmed_at)
-          throw new Error(
-            "Email verification is incomplete. Use the link sent to your inbox, then try again.",
-          );
-        await acceptTerms();
-        const invitationToken = String(
-          user.user_metadata.invitation_token ?? "",
-        );
-        if (invitationToken) {
-          await acceptInvitation(invitationToken);
-          if (active) navigate("/app", { replace: true });
-          return;
-        }
-        const starter = {
-          ...emptyAnswers,
-          fullName: String(user.user_metadata.full_name ?? ""),
-          email: user.email ?? "",
-          marketingOptIn: user.user_metadata.marketing_opt_in === true,
-          termsAccepted: true,
-          privacyAcknowledged: true,
-        };
-        await saveOnboardingDraft({ currentStep: 2, answers: starter });
-        if (active) navigate("/start", { replace: true });
-      } catch (reason) {
-        if (active)
-          setMessage(
-            reason instanceof Error
-              ? reason.message
-              : "We couldn’t complete email verification.",
-          );
-      }
-    }
-    void finish();
-    return () => {
-      active = false;
-    };
-  }, [navigate]);
-  return (
-    <WizardFrame>
-      <div className="wizard-loading" role="status">
-        {message}
-      </div>
-      <Link className="form-back" to="/login">
-        Return to sign in
-      </Link>
-    </WizardFrame>
-  );
-}
-
 function LegalNoticesRequired() {
   return (
     <WizardFrame>
@@ -2028,319 +1833,3 @@ function LegalNoticesRequired() {
   );
 }
 
-export function InviteAccept({
-  onJoined,
-}: {
-  onJoined: (organizationId: string) => void;
-}) {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get("token") ?? "";
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [acceptTermsChecked, setAcceptTermsChecked] = useState(false);
-  const [signedIn, setSignedIn] = useState(false);
-  const [emailPending, setEmailPending] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    if (appMode !== "production" || !hasSupabaseConfig) return;
-    void getProductionClient()
-      .auth.getUser()
-      .then(({ data }) => {
-        setSignedIn(Boolean(data.user?.email_confirmed_at));
-        if (data.user?.email) setEmail(data.user.email);
-        if (data.user?.user_metadata.full_name)
-          setFullName(String(data.user.user_metadata.full_name));
-      });
-  }, []);
-  if (appMode !== "production" || !hasSupabaseConfig)
-    return <ConfigurationRequired />;
-  if (!hasApprovedLegalNotices) return <LegalNoticesRequired />;
-  if (!token)
-    return (
-      <WizardFrame>
-        <div className="eyebrow">
-          <span className="eyebrow-dot" /> JOIN YOUR DEALERSHIP
-        </div>
-        <h1 className="config-title">Open your invitation link</h1>
-        <p className="auth-intro">
-          Team members join an existing dealership through a private invitation
-          link. Ask the dealership owner or manager to send you a fresh link.
-        </p>
-        <WizardButton variant="outline" onClick={() => navigate("/login")}>
-          Sign in to your account <ArrowRight size={15} />
-        </WizardButton>
-        <p className="auth-legal">
-          Don’t create a new dealership if you’ve been invited to an existing
-          one.
-        </p>
-      </WizardFrame>
-    );
-  if (emailPending)
-    return (
-      <WizardFrame>
-        <div className="email-pending-card">
-          <span className="email-pending-icon">
-            <MailCheck size={24} />
-          </span>
-          <h1>Check your inbox</h1>
-          <p>
-            Verify <b>{email}</b> using the link we requested. The invitation is
-            accepted after your email is confirmed.
-          </p>
-          <p className="auth-legal">
-            If email delivery is not configured for this Supabase project, no
-            message will arrive.
-          </p>
-        </div>
-      </WizardFrame>
-    );
-  const join = async () => {
-    setBusy(true);
-    setError("");
-    try {
-      const organizationId = await acceptInvitation(token);
-      onJoined(organizationId);
-      navigate("/app", { replace: true });
-    } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : "We couldn’t accept this invitation.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-  const createInviteAccount = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!acceptTermsChecked) {
-      setError(
-        "Review and accept the service terms and privacy notice to continue.",
-      );
-      return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      const result = await registerInvitedAccount({
-        email,
-        password,
-        fullName,
-        invitationToken: token,
-      });
-      setPassword("");
-      if (result.emailConfirmationRequired) setEmailPending(true);
-      else if (result.organizationId) {
-        onJoined(result.organizationId);
-        navigate("/app", { replace: true });
-      }
-    } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : "We couldn’t create the invited account. Check the invitation email and try again.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <WizardFrame>
-      <div className="eyebrow">
-        <span className="eyebrow-dot" /> JOIN AN EXISTING DEALERSHIP
-      </div>
-      <h1 className="config-title">Accept your invitation</h1>
-      <p className="auth-intro">
-        This link is for a team member joining an existing dealership. Your
-        invited email must match the account you use here.
-      </p>
-      {signedIn ? (
-        <>
-          <div className="workspace-summary">
-            <span className="workspace-summary-icon">
-              <Building2 size={17} />
-            </span>
-            <span>
-              <small>INVITED ACCOUNT</small>
-              <strong>{email}</strong>
-            </span>
-          </div>
-          {error && (
-            <p className="inline-notice wizard-error" role="alert">
-              {error}
-            </p>
-          )}
-          <WizardButton disabled={busy} onClick={join}>
-            {busy ? (
-              "Accepting…"
-            ) : (
-              <>
-                Join dealership <ArrowRight size={15} />
-              </>
-            )}
-          </WizardButton>
-        </>
-      ) : (
-        <form className="auth-form wizard-form" onSubmit={createInviteAccount}>
-          <TextField
-            label="Full name"
-            value={fullName}
-            onChange={setFullName}
-            autoComplete="name"
-            required
-          />
-          <TextField
-            label="Invited email address"
-            type="email"
-            value={email}
-            onChange={setEmail}
-            autoComplete="email"
-            required
-          />
-          <TextField
-            label="Create a password"
-            type="password"
-            value={password}
-            onChange={setPassword}
-            min="8"
-            autoComplete="new-password"
-            required
-          />
-          <label className="consent-check">
-            <input
-              type="checkbox"
-              checked={acceptTermsChecked}
-              onChange={(event) => setAcceptTermsChecked(event.target.checked)}
-              required
-            />
-            <span>
-              I accept the{" "}
-              <Link to="/terms" target="_blank">
-                service terms
-              </Link>{" "}
-              and acknowledge the{" "}
-              <Link to="/privacy" target="_blank">
-                privacy notice
-              </Link>
-              .
-            </span>
-          </label>
-          {error && (
-            <p className="inline-notice wizard-error" role="alert">
-              {error}
-            </p>
-          )}
-          <WizardButton type="submit" disabled={busy}>
-            {busy ? (
-              "Creating invited account…"
-            ) : (
-              <>
-                Create invited account <ArrowRight size={15} />
-              </>
-            )}
-          </WizardButton>
-          <button
-            type="button"
-            className="form-back"
-            onClick={async () => {
-              setBusy(true);
-              setError("");
-              try {
-                const { error: authError } =
-                  await getProductionClient().auth.signInWithPassword({
-                    email,
-                    password,
-                  });
-                if (authError) throw authError;
-                await acceptTerms();
-                await join();
-              } catch (reason) {
-                setError(
-                  reason instanceof Error
-                    ? reason.message
-                    : "We couldn’t sign in with that invitation.",
-                );
-                setBusy(false);
-              }
-            }}
-          >
-            Already have an account? Sign in and join
-          </button>
-        </form>
-      )}
-      <p className="auth-legal">
-        The invitation must be current and match the invited email address.
-        Staff are added to this dealership; no new dealership is created.
-      </p>
-    </WizardFrame>
-  );
-}
-
-export function PasswordUpdate() {
-  const navigate = useNavigate();
-  const [password, setPassword] = useState("");
-  const [notice, setNotice] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  return (
-    <WizardFrame>
-      <div className="eyebrow">
-        <span className="eyebrow-dot" /> ACCOUNT ACCESS
-      </div>
-      <h1 className="config-title">Choose a new password</h1>
-      <p className="auth-intro">
-        Use at least eight characters. Your password is handled by Supabase
-        Auth.
-      </p>
-      <form
-        className="auth-form wizard-form"
-        onSubmit={async (event) => {
-          event.preventDefault();
-          setBusy(true);
-          setError("");
-          try {
-            const { error: updateError } =
-              await getProductionClient().auth.updateUser({ password });
-            if (updateError) throw updateError;
-            setNotice("Your password was updated. You can now sign in.");
-            window.setTimeout(() => navigate("/login"), 1400);
-          } catch (reason) {
-            setError(
-              reason instanceof Error
-                ? reason.message
-                : "We couldn’t update the password.",
-            );
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
-        <TextField
-          label="New password"
-          type="password"
-          value={password}
-          onChange={setPassword}
-          min="8"
-          autoComplete="new-password"
-          required
-        />
-        {error && (
-          <p className="inline-notice wizard-error" role="alert">
-            {error}
-          </p>
-        )}
-        {notice && (
-          <p className="inline-notice" role="status">
-            {notice}
-          </p>
-        )}
-        <WizardButton type="submit" disabled={busy}>
-          {busy ? "Updating…" : "Update password"}
-        </WizardButton>
-      </form>
-    </WizardFrame>
-  );
-}

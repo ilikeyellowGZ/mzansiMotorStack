@@ -43,13 +43,13 @@ export async function loadOnboardingDraft(): Promise<SavedOnboardingDraft | null
     return value ? (JSON.parse(value) as SavedOnboardingDraft) : null;
   }
   const client = getProductionClient();
-  const { data: authData, error: authError } = await client.auth.getUser();
-  if (authError) throw authError;
-  if (!authData.user) return null;
+  const { data: profile, error: profileError } = await client.from("profiles").select("id").maybeSingle();
+  if (profileError) throw profileError;
+  if (!profile) return null;
   const { data, error } = await client
     .from("onboarding_drafts")
     .select("current_step, answers, submitted_request_id")
-    .eq("user_id", authData.user.id)
+    .eq("user_id", profile.id)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
@@ -68,12 +68,12 @@ export async function saveOnboardingDraft(
     return;
   }
   const client = getProductionClient();
-  const { data: authData, error: authError } = await client.auth.getUser();
-  if (authError) throw authError;
-  if (!authData.user) throw new Error("Sign in to save and resume onboarding.");
+  const { data: profile, error: profileError } = await client.from("profiles").select("id").maybeSingle();
+  if (profileError) throw profileError;
+  if (!profile) throw new Error("Sign in to save and resume onboarding.");
   const { error } = await client.from("onboarding_drafts").upsert(
     {
-      user_id: authData.user.id,
+      user_id: profile.id,
       current_step: draft.currentStep,
       answers: toJson(draft.answers),
       updated_at: new Date().toISOString(),
@@ -81,38 +81,6 @@ export async function saveOnboardingDraft(
     { onConflict: "user_id" },
   );
   if (error) throw error;
-}
-
-export async function registerOwner(input: {
-  email: string;
-  password: string;
-  fullName: string;
-  marketingOptIn: boolean;
-}): Promise<{ emailConfirmationRequired: boolean }> {
-  if (appMode === "demo") return { emailConfirmationRequired: false };
-  const client = getProductionClient();
-  const { data, error } = await client.auth.signUp({
-    email: input.email,
-    password: input.password,
-    options: {
-      emailRedirectTo: `${window.location.origin}/auth/callback`,
-      data: {
-        full_name: input.fullName,
-        marketing_opt_in: input.marketingOptIn,
-        terms_accepted: true,
-        terms_version: TERMS_VERSION,
-        privacy_version: PRIVACY_VERSION,
-      },
-    },
-  });
-  if (error) throw error;
-  if (!data.user)
-    throw new Error("Supabase did not return a user after signup.");
-  if (data.session && data.user.email_confirmed_at) {
-    await acceptTerms();
-    return { emailConfirmationRequired: false };
-  }
-  return { emailConfirmationRequired: true };
 }
 
 export async function acceptTerms(): Promise<void> {
@@ -123,38 +91,6 @@ export async function acceptTerms(): Promise<void> {
     p_privacy_version: PRIVACY_VERSION,
   });
   if (error) throw error;
-}
-
-export async function registerInvitedAccount(input: {
-  email: string;
-  password: string;
-  fullName: string;
-  invitationToken: string;
-}): Promise<{ emailConfirmationRequired: boolean; organizationId?: string }> {
-  const client = getProductionClient();
-  const { data, error } = await client.auth.signUp({
-    email: input.email,
-    password: input.password,
-    options: {
-      emailRedirectTo: `${window.location.origin}/auth/callback?invited=1`,
-      data: {
-        full_name: input.fullName,
-        marketing_opt_in: false,
-        terms_accepted: true,
-        terms_version: TERMS_VERSION,
-        privacy_version: PRIVACY_VERSION,
-        invitation_token: input.invitationToken,
-      },
-    },
-  });
-  if (error) throw error;
-  if (!data.user) throw new Error("Supabase did not return an invited user.");
-  if (data.session && data.user.email_confirmed_at) {
-    await acceptTerms();
-    const organizationId = await acceptInvitation(input.invitationToken);
-    return { emailConfirmationRequired: false, organizationId };
-  }
-  return { emailConfirmationRequired: true };
 }
 
 export async function acceptInvitation(token: string): Promise<string> {
@@ -251,25 +187,6 @@ async function edgeFunctionError(error: Error) {
     } catch { /* Keep the Supabase function error as the fallback. */ }
   }
   return error;
-}
-
-export async function signIn(email: string, password: string) {
-  const client = getProductionClient();
-  return client.auth.signInWithPassword({ email, password });
-}
-
-export async function sendPasswordReset(email: string) {
-  const client = getProductionClient();
-  return client.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password/confirm`,
-  });
-}
-
-export async function signOut() {
-  if (appMode !== "production") return;
-  const client = getProductionClient();
-  const { error } = await client.auth.signOut();
-  if (error) throw error;
 }
 
 export function getModeLabel() {

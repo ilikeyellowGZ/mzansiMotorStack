@@ -1,49 +1,41 @@
-# Implementation and integration status
+﻿# Implementation and integration status
 
 ## Delivered
 
-- A responsive account-first onboarding journey for dealership owners, including optional website/social questions, setup method, subscription comparison, setup fee schedule, and final review.
-- Exact plan prices: Essentials R849/month or R9,169.20/year; Growth R1,500/month or R16,200/year; Managed R3,500/month or R37,800/year. Annual savings are R1,018.80, R1,800, and R4,200 respectively.
-- Setup fees: self-service Essentials and Growth R0; self-service Managed R4,500 for website/social launch; assisted Essentials R1,499, Growth R2,999, and Managed R5,999. Managed launch is a single package and does not stack another website fee.
-- Growth assisted setup split into R999.67, R999.67, and R999.66. Annual subscription is charged upfront in the quote model; setup instalments are separate.
-- Appointment requests in Africa/Johannesburg local time, always shown as requests until someone confirms availability. In-person travel pricing stays pending.
-- Owner email confirmation and account recovery wiring; invite token acceptance validates expiry, verified email match, and joins an existing organization.
-- Supabase project linked and authenticated through MCP and CLI. The onboarding and dealership operations migrations are applied to the linked project, with local migration history aligned to remote history.
-- Tenant-scoped Supabase schema/RLS for organizations, locations, customer records, vehicles and media, leads and activity, tasks, appointments, deals, trade-ins, invoices, payments, documents, imports, service delivery, subscriptions, notifications, and social profiles. Four private Storage buckets and organization-path policies are configured.
-- Transactional onboarding RPC. One default location is created behind the scenes. Unique onboarding and service request constraints prevent duplicate work from retries. Generated TypeScript database types reflect the live schema.
-- A production workspace status page that does not show demo records and states clearly that billing, imports, and service work are not active.
-- Netlify SPA routing configuration and pure pricing/URL unit tests.
+- A responsive seven-step owner onboarding journey and sample workspace, with the existing pricing and service choices preserved.
+- Tenant-scoped Supabase schema/RLS for dealership operations and private Storage, plus idempotent onboarding and payment workflows.
+- Clerk React screens at `/signup`, `/login`, `/account`, `/accept-invite`, `/onboarding`, and `/access-denied`. Clerk owns password, verification, recovery and session flows.
+- Clerk's current native Supabase third-party integration, session-token callback, server-verified profile provisioning, owner invitations through Resend, single-use acceptance, revocation and member suspension.
+- A forward-only identity migration that preserves internal UUID keys, replaces Auth-user foreign keys with profile references, updates roles and authorization policies, and aborts when Supabase Auth users exist.
+- Netlify SPA routing remains in place; the public site and isolated demo do not require login.
 
-## Deliberately not connected or launch-ready
+## Not yet connected or launch-ready
 
-- Supabase Auth, database persistence, invitation acceptance, and password recovery are implemented in code. Production redirect URLs and approved legal notice versions still need configuration. SMTP is not configured.
-- Resend is not configured. Use it as the verified SMTP sender for Supabase Auth only after domain verification and sender configuration. Transactional emails for onboarding requests and appointment requests still need a trusted function and templates.
-- Private Storage buckets and tenant-scoped policies are configured. Upload screens, signed upload workflows, scanning, CSV mapping/import, and data review are not implemented.
-- Paystack checkout, transaction verification, signed webhook handling, recurring card subscriptions, scheduled setup instalments, and idempotent activation are implemented as Supabase Edge Functions. The migration and functions are local and still need deployment. Checkout stays blocked until tax treatment is configured, and no Paystack credentials are present.
-- Netlify configuration is present, but no Netlify site is linked or deployed.
-- Employee invitation acceptance exists, but owners cannot yet create/send invitations from the workspace.
+- The Clerk migration is local and has not been applied. The linked Supabase project currently has zero Auth users, organizations, memberships and onboarding requests. The migration has a preflight guard; if this changes, pause and prepare a verified account activation mapping first.
+- Clerk dev/prod instances, Supabase third-party provider settings, production domains, Edge Function secrets/functions, Resend and Netlify are not configured here. No live sign-up, login, recovery, invitation email or token verification is claimed.
+- Production onboarding stays gated until approved legal notice versions and billing/tax configuration are set.
+- Private Storage policies exist, but upload workflows, scanning, imports and operational record screens remain future work.
+- Paystack checkout and webhook code are local. The Paystack migration/functions still need deployment and test credentials before payment flows can be verified.
+- No Netlify site is linked or deployed.
 
 ## Configuration sequence
 
-1. Supabase project linking and migrations are complete. Review the database advisors periodically as real workload develops.
-2. Approve and publish the actual service terms and privacy notice. Set matching versions in the app environment and the private `pricing_configuration` row. Keep signup blocked until both versions match.
-3. Configure Auth email confirmations, production Site URL, exact callback URLs, password reset URL, and Resend SMTP credentials. Verify email delivery before inviting customers.
-4. Confirm tax treatment, AI/message allowances and service terms centrally. Keep signup/checkout unavailable while these are unresolved.
-5. Configure tax treatment and approved pricing, set Paystack test credentials as Supabase Edge Function secrets, deploy the billing migration/functions, register the webhook URL in Paystack, and test payment, renewal, cancellation, failure, retry, and setup instalment flows before using live credentials.
-6. Create private Storage buckets and upload policies; implement upload review and import validation.
-7. Connect Netlify, set the Vite public Supabase variables, add the Netlify domain to Supabase Auth URLs, and validate deep links, email callbacks, and mobile layout on the production hostname.
+1. Follow [the Clerk authentication setup guide](CLERK-AUTH-SETUP.md) to create separate development and production Clerk instances, set exact domains, and activate native Clerk–Supabase integration in both dashboards.
+2. Review the live table counts and the migration preflight. Take a backup, apply the identity migration, and deploy the Clerk and invitation Edge Functions to development first.
+3. Set the public Clerk/Supabase values in Netlify and server-only Clerk, Supabase and Resend secrets in Supabase Function Secrets.
+4. Verify email/password, recovery, owner onboarding, invitations, direct two-dealership RLS isolation, Storage paths and invalid/expired function tokens before production.
+5. Approve/publish legal notices and configure pricing/tax treatment before enabling real onboarding or checkout.
+6. Deploy and verify Paystack and operational storage features separately before using production credentials.
 
-## Local verification
+## Verification in this workspace
 
-- `npm test`: 11 pricing, setup-scope, URL, and disabled-payment-adapter tests pass.
-- `npm run build`: TypeScript and Vite build pass. Code splitting keeps the largest generated chunk at about 258 kB minified.
-- `npm run doctor -- --json`: no Performance-category findings after the final scan. Maintainability findings remain for the large wizard and app shell.
-- Remote Supabase migration history, tables, generated types, security/performance/health advisors, and CLI linkage were checked. Docker is unavailable, so no local PostgreSQL stack was used.
+- `npm run build` passes after the Clerk frontend integration.
+- `npm test` passes 19 tests, including pricing/onboarding tests and safe internal redirect checks.
+- Live provider verification and two-tenant direct API checks still require configured development credentials and deployed functions.
+- The linked project was inspected read-only for migration history, table state and identity counts. The new migration was not applied remotely.
 
 ## Paystack setup
 
-- Required server secret: `PAYSTACK_SECRET_KEY` in Supabase Edge Function secrets. Never add it to a `VITE_*` variable or the browser bundle.
-- Optional newer webhook signing secret: `PAYSTACK_WEBHOOK_SECRET`. The webhook also supports Paystack's `x-paystack-signature` HMAC using the secret key.
-- Register `https://<project-ref>.supabase.co/functions/v1/paystack-webhook` in Paystack's webhook settings.
-- The checkout creates Paystack plans on demand and supports card payments only, as Paystack recurring subscriptions require a reusable card authorization.
-- Checkout intentionally returns an error while the saved quote has `configuration_required` tax treatment; it will not charge an unfinalized subtotal.
+- Set `PAYSTACK_SECRET_KEY` and optional `PAYSTACK_WEBHOOK_SECRET` as server-side Supabase Function Secrets. Do not use `VITE_*` for secrets.
+- Register `https://<project-ref>.supabase.co/functions/v1/paystack-webhook` in Paystack.
+- The checkout uses card subscriptions and remains blocked until tax treatment is configured as inclusive.
