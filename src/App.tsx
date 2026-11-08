@@ -36,6 +36,7 @@ import { appMode, hasApprovedLegalNotices, supabase } from "./lib/config";
 import { formatMoney, getSetupFee, planDetails, type PlanCode } from "./lib/onboarding";
 import { AcceptInvitePage, AccountPage, ClerkLogoutButton, ClerkProtected, ClerkSignInPage, ClerkSignUpPage, InviteStaffPage } from "./auth/ClerkAuth";
 import { useAuth } from "@clerk/react";
+import { AssistantHost } from "./assistant/AssistantHost";
 
 type Workspace = { name: string; email: string; branch: string };
 const zarFormatter = new Intl.NumberFormat("en-ZA", { style: "currency", currency: "ZAR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -726,6 +727,7 @@ function PrivacyNotice() {
         </div>
         <section className="legal-sections" aria-label="Privacy details">
           <article><h2>Why information is used</h2><p>Account and dealership details are used to set up access, manage the selected workspace, record service requests and support billing. Vehicle, lead and task records are used for the dealership workflows chosen by its team. Marketing email is a separate opt-in during onboarding.</p></article>
+          <article><h2>Assistant conversations</h2><p>When connected, the assistant sends your recent messages, approved product information and limited saved setup choices to the configured AI provider to answer your question. Anonymous chat stays in this browser session. Signed-in chat expires after 30 days; reviewed contact requests expire after 90 days. Expired records are removed by the assistant server when it receives requests. Please do not enter passwords, verification codes, banking details or identity documents in chat.</p></article>
           <article><h2>Your choices and requests</h2><p>Account details can be reviewed in the account area when sign-in is configured. Requests to access, correct or delete personal information, and objections to processing, need a published operator contact before launch. South Africa’s <a href="https://inforegulator.org.za/" target="_blank" rel="noreferrer">Information Regulator</a> explains the rights available under POPIA.</p></article>
           <article><h2>Before this notice is final</h2><p>The responsible operator’s legal name and contact details, exact provider locations, retention periods, security and deletion procedures, and any analytics or marketing services must be confirmed and published. No production consent version should be marked approved until that review is complete.</p></article>
         </section>
@@ -1520,6 +1522,7 @@ export default function App() {
       <Route path="/app/tasks" element={<WorkspaceRoute workspace={workspace} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    <AssistantHost />
     </Suspense>
   );
 }

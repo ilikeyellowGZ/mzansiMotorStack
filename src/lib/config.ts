@@ -29,6 +29,9 @@ let clerkAccessToken: (() => Promise<string | null>) | null = null;
 export function setClerkAccessTokenProvider(provider: (() => Promise<string | null>) | null) {
   clerkAccessToken = provider;
 }
+export async function getClerkAccessToken() {
+  return clerkAccessToken?.() ?? null;
+}
 
 export const supabase = hasSupabaseConfig
   ? createClient<Database>(supabaseUrl, supabasePublishableKey, {

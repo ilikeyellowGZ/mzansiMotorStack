@@ -1,4 +1,8 @@
 import type { Json } from "./database.types";
+import { planDetails } from "../../supabase/functions/_shared/productCatalog";
+export { planDetails } from "../../supabase/functions/_shared/productCatalog";
+export type { PlanCode } from "../../supabase/functions/_shared/productCatalog";
+import type { PlanCode } from "../../supabase/functions/_shared/productCatalog";
 
 const zarFormatter = new Intl.NumberFormat("en-ZA", {
   style: "currency",
@@ -7,43 +11,6 @@ const zarFormatter = new Intl.NumberFormat("en-ZA", {
   maximumFractionDigits: 2,
 });
 
-export const planDetails = {
-  essentials: {
-    name: "Essentials",
-    monthly: 84900,
-    annual: 916920,
-    saving: 101880,
-    users: "Up to 3",
-    ai: "Not included",
-    website: "Optional quoted add-on",
-    social: "Optional quoted add-on",
-    support: "Standard support",
-  },
-  growth: {
-    name: "Growth",
-    monthly: 150000,
-    annual: 1620000,
-    saving: 180000,
-    users: "Up to 5",
-    ai: "Allowance to be confirmed before checkout",
-    website: "Optional quoted add-on",
-    social: "Optional quoted add-on",
-    support: "Priority support",
-  },
-  managed: {
-    name: "Managed",
-    monthly: 350000,
-    annual: 3780000,
-    saving: 420000,
-    users: "Up to 10",
-    ai: "Larger allowance to be confirmed before checkout",
-    website: "Standard website service included, with setup fee",
-    social: "8 original posts/month, adapted for Facebook + Instagram",
-    support: "Monthly online review",
-  },
-} as const;
-
-export type PlanCode = keyof typeof planDetails;
 export type BillingInterval = "monthly" | "annual";
 export type SetupMethod = "self_service" | "online" | "in_person";
 export type SocialPlatform =

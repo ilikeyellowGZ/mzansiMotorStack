@@ -54,3 +54,6 @@ verify_jwt = true
 
 [functions.revoke-clerk-invitation]
 verify_jwt = true
+
+[functions.motorstack-assistant]
+verify_jwt = false
