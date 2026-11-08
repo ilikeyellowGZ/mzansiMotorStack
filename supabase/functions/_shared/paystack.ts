@@ -15,7 +15,7 @@ export function jsonResponse(body: unknown, status = 200) {
 
 export function getAdminClient() {
   const url = Deno.env.get("SUPABASE_URL");
-  const key = Deno.env.get("SUPABASE_SERVER_SECRET") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const key = Deno.env.get("MOTORSTACK_SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key) throw new Error("Supabase server credentials are not configured.");
   return createSupabaseServerClient(url, key);
 }

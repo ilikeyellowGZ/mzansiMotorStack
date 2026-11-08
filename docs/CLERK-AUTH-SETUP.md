@@ -31,7 +31,7 @@ The connected Supabase project was inspected on 7 November 2026: `auth.users`, d
 
 In Netlify, add only the browser values from the table below to the correct site and deploy context. These three values are public by design. Keep all other values out of Netlify's `VITE_*` environment.
 
-In Supabase **Project Settings → Edge Functions → Secrets**, set the server values below in the matching project. Supabase's built-in `SUPABASE_URL` and `SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY` can be used where available; `SUPABASE_SERVER_SECRET` is the explicit server-only API secret expected by these functions. Never put a service-role or secret key in the browser bundle.
+In Supabase **Edge Functions → Secrets**, set the server values below in the matching project. Supabase's built-in `SUPABASE_URL` and legacy `SUPABASE_SERVICE_ROLE_KEY` can be used where available; `MOTORSTACK_SUPABASE_SECRET_KEY` holds the project's current `sb_secret_...` API key for these functions. Supabase reserves the `SUPABASE_` prefix for its own variables. Never put a service-role or secret key in the browser bundle.
 
 | Variable | Where it is used |
 | --- | --- |
@@ -43,7 +43,7 @@ In Supabase **Project Settings → Edge Functions → Secrets**, set the server 
 | `CLERK_JWT_AUDIENCE` | Optional; set only if the Clerk token is configured with an `aud` claim |
 | `APP_ALLOWED_ORIGINS` | Supabase Edge Functions; comma-separated exact local and production origins for `azp` validation and CORS |
 | `APP_PUBLIC_URL` | Invitation links sent by Resend |
-| `SUPABASE_SERVER_SECRET` | Supabase Edge Functions only; trusted profile and invitation writes |
+| `MOTORSTACK_SUPABASE_SECRET_KEY` | Supabase Edge Functions only; trusted profile and invitation writes |
 | `RESEND_API_KEY` | Supabase Edge Functions only; invitation email delivery |
 | `RESEND_FROM_EMAIL` | Supabase Edge Functions only; verified invitation sender |
 | `CLERK_WEBHOOK_SIGNING_SECRET` | Reserved for an optional future webhook; no webhook is needed for first-login provisioning |
@@ -126,7 +126,7 @@ Use separate Clerk development accounts, two dealerships and direct API requests
 - Test private Storage paths under both organizations for reads, inserts, updates and deletes. Test invalid, expired, wrong-issuer and wrong-authorized-party tokens against every authenticated function.
 - Retry profile provisioning concurrently and replay invitation acceptance. Both must stay idempotent; a second invitation acceptance must not add another membership or dealership.
 - Force a failed payment and confirm the signed-in owner can still reach workspace billing/support routes.
-- Inspect every built JS asset for `CLERK_SECRET_KEY`, `SUPABASE_SERVER_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, and `RESEND_API_KEY`; only publishable keys may appear in frontend output.
+- Inspect every built JS asset for `CLERK_SECRET_KEY`, `MOTORSTACK_SUPABASE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `RESEND_API_KEY`; only publishable keys may appear in frontend output.
 
 The repository checks run in this implementation session cover TypeScript/Vite production compilation, existing onboarding/pricing tests and safe redirect handling. Live provider flows, two-tenant direct API isolation, function token validation and email delivery still require configured Clerk/Supabase/Resend development credentials and deployed functions; no live success is claimed here.
 

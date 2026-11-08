@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     if (typeof invitationId !== "string" || typeof organizationId !== "string") throw new Error("Invitation details are required");
     const url = Deno.env.get("SUPABASE_URL");
     const publishableKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
-    const secret = Deno.env.get("SUPABASE_SERVER_SECRET") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const secret = Deno.env.get("MOTORSTACK_SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const authorization = req.headers.get("Authorization");
     if (!url || !publishableKey || !secret || !authorization) throw new Error("Supabase server credentials are not configured");
     const userClient = createClient(url, publishableKey, { global: { headers: { Authorization: authorization } }, auth: { persistSession: false, autoRefreshToken: false } });

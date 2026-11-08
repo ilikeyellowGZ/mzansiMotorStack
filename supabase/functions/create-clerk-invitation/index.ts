@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     if (typeof organizationId !== "string") throw new Error("Select a dealership");
     const url = Deno.env.get("SUPABASE_URL");
     const publishableKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
-    const secret = Deno.env.get("SUPABASE_SERVER_SECRET") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const secret = Deno.env.get("MOTORSTACK_SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const resendKey = Deno.env.get("RESEND_API_KEY");
     const from = Deno.env.get("RESEND_FROM_EMAIL");
     const appUrl = Deno.env.get("APP_PUBLIC_URL");

@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   try {
     const identity = await verifiedClerkUser(req);
     const url = Deno.env.get("SUPABASE_URL");
-    const secret = Deno.env.get("SUPABASE_SERVER_SECRET") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const secret = Deno.env.get("MOTORSTACK_SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!url || !secret) throw new Error("Supabase server credentials are not configured");
     const admin = createSupabaseServerClient(url, secret);
 

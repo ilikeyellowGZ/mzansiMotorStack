@@ -22,7 +22,7 @@
 | Payment | Deploy the Paystack migration and functions, configure test secrets/webhook, then test payment success, failure, retries and duplicate webhooks. Checkout must remain blocked until inclusive tax treatment is configured. |
 | Storage and operations | Storage policies exist. Signed upload, scanning, CSV import and operational create/edit screens remain unimplemented. |
 | Production hosting | Connect Netlify, set production-only browser values, and verify deep links and flows on the production hostname. No deployment has been made. |
-| Assistant | Apply the assistant migration after the Clerk identity migration; deploy its public Edge Function; configure server-only OpenAI model/key and rate-limit salt; establish who monitors `assistant_enquiries`; schedule daily expiry purge; verify live chat, RLS history, reviewed saves and handoff on a development project before release. |
+| Assistant | Apply the assistant migration after the Clerk identity migration; deploy its public Edge Function; configure server-only Groq model/key and rate-limit salt; establish who monitors `assistant_enquiries`; schedule daily expiry purge; verify live chat, RLS history, reviewed saves and handoff on a development project before release. The configured Qwen 3.8 27B alternative is a preview model; Groq Llama 3.3 70B requires Enterprise access after its August 2026 free/developer retirement. |
 
 ## Data assessment and rollback
 
@@ -32,4 +32,4 @@ For the current empty baseline, stop Clerk signup, roll back the Netlify applica
 
 ## Test boundary
 
-`npm run build` passes and `npm test` passes 22 local tests. The assistant function passes `deno check`, and production-build browser checks pass with mocked service responses. Auth-provider flows, deployed Edge Functions, real OpenAI responses, enquiry delivery/triage, two-dealership API isolation, cross-tenant Storage, session expiry and payment failure access have not been live-tested because no provider credentials/functions were configured in this session. See [the setup guide](CLERK-AUTH-SETUP.md) for the development verification checklist.
+`npm run build` passes and `npm test` passes local tests. The assistant function passes `deno check`, and production-build browser checks pass with mocked service responses. Auth-provider flows, deployed Edge Functions, real Groq responses, enquiry delivery/triage, two-dealership API isolation, cross-tenant Storage, session expiry and payment failure access have not been live-tested because no provider credentials/functions were configured in this session. See [the setup guide](CLERK-AUTH-SETUP.md) for the development verification checklist.
