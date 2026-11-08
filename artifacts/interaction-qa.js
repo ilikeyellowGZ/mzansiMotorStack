@@ -21,7 +21,7 @@ async page => {
   await page.getByRole("button", {name: "Open navigation"}).click();
   check(await page.locator("#public-mobile-nav").isVisible(), "Public mobile navigation did not open");
   await page.keyboard.press("Escape");
-  check(!(await page.locator("#public-mobile-nav").isVisible()), "Public mobile navigation did not close on Escape");
+  await page.locator("#public-mobile-nav").waitFor({state: "hidden"});
   results.push("public mobile menu and actions:ok");
 
   await page.setViewportSize({width: 1366, height: 900});
@@ -39,7 +39,7 @@ async page => {
   await page.getByRole("button", {name: "Open menu"}).click();
   check(await page.getByRole("navigation", {name: "Workspace navigation"}).isVisible(), "Workspace menu did not open");
   await page.keyboard.press("Escape");
-  check(!(await page.getByRole("navigation", {name: "Workspace navigation"}).isVisible()), "Workspace menu did not close on Escape");
+  await page.locator(".app-sidebar").waitFor({state: "hidden"});
   results.push("workspace mobile menu:ok");
 
   await page.goto(base + "/demo/components");

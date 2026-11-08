@@ -118,7 +118,7 @@ function PublicHeader() {
           <Link to="/demo">Try demo</Link>
           <Link to="/login">Sign in</Link>
         </div>
-        <button className="public-menu-toggle icon-button" type="button" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-controls="public-mobile-nav" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>
+        <button className="public-menu-toggle icon-button" type="button" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-controls="public-mobile-nav" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)} onKeyDown={event => { if (event.key === "Escape") setMenuOpen(false); }}>
           {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
@@ -1024,6 +1024,7 @@ function AppShell({ workspace, preview = false, identityKey = "" }: { workspace:
           <button
             className="mobile-menu icon-button"
             onClick={() => setMenuOpen(true)}
+            onKeyDown={event => { if (event.key === "Escape") setMenuOpen(false); }}
             aria-label="Open menu"
             aria-controls="workspace-navigation"
             aria-expanded={menuOpen}

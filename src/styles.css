@@ -77,7 +77,7 @@ html {
 }
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
   min-height: 100dvh;
 }
 a {
@@ -4236,3 +4236,44 @@ select:focus-visible {
 @media (max-width: 560px) {
   .gallery-table-footer nav { width: 100%; justify-content: space-between; }
 }
+
+@media (min-width: 1200px) {
+  .hero { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 24px; padding-top: 80px; }
+  .hero-copy { display: contents; }
+  .hero .eyebrow { grid-column: 1 / -1; justify-self: center; }
+  .hero h1 { grid-column: 1 / -1; max-width: min(100%, clamp(1000px, 72vw, 1600px)); margin: 0 auto 24px; font-size: clamp(100px, 9.72vw, 200px); text-align: center; }
+  .hero-lede { grid-column: 2; grid-row: 3; justify-self: end; max-width: 520px; margin: 0; font-size: 18px; }
+  .hero-actions { grid-column: 1; grid-row: 3; align-self: start; margin: 0; }
+  .hero-footnote { grid-column: 1; grid-row: 4; margin: 0; }
+  .hero-art { grid-column: 1 / -1; grid-row: 5; min-height: clamp(500px, 30vw, 820px); }
+  .hero-art .dashboard-preview { width: min(70%, clamp(600px, 45vw, 1400px)); }
+}
+@media (min-width: 2200px) {
+  .section-heading h2, .start-copy h2 { font-size: clamp(80.5px, 3.5vw, 112px); }
+  .section-heading > p { max-width: 650px; font-size: 20px; }
+  .feature-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr auto; align-items: start; column-gap: 32px; row-gap: 28px; min-height: 360px; padding: 40px; }
+  .feature-card .feature-icon { grid-column: 1; grid-row: 1; }
+  .feature-card .feature-index { position: static; grid-column: 2; grid-row: 1; justify-self: end; }
+  .feature-card h3 { grid-column: 1; grid-row: 2; max-width: none; margin: 0; font-size: 32px; }
+  .feature-card p { grid-column: 2; grid-row: 2; max-width: none; font-size: 18px; }
+  .feature-mini-stock, .feature-card .lead-avatars, .feature-card .day-checks { grid-column: 1 / -1; grid-row: 3; margin-top: 0; font-size: 14px; }
+  .start-copy > p { max-width: 650px; font-size: 20px; }
+  .start-step b { font-size: 18px; }
+  .start-step small { font-size: 14px; }
+  .contact-copy h2 { max-width: 760px; font-size: 68px; }
+  .contact-copy > p { max-width: 650px; font-size: 20px; }
+  .metric-card { min-height: 190px; padding: 32px; }
+  .metric-value { font-size: 40px; }
+  .metric-label, .metric-trend { font-size: 16px; }
+  .panel-header h2 { font-size: 24px; }
+}
+
+/* Working text stays legible beside the expressive public display scale. */
+.metric-label, .metric-trend, .task-description span, .task-row time,
+.stock-model span, .myday-row > div span, .table-vehicle small,
+.lead-person small, .table-muted, .chart-summary, .app-disclaimer {
+  font-size: var(--type-14);
+  line-height: 1.5;
+}
+.filter-pill, .searchbox input, .table-result-count { font-size: var(--type-14); }
+.panel-kicker, .data-table-head, .chart-col > span { font-size: var(--type-12); }

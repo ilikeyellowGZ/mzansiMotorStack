@@ -7,3 +7,4 @@ dist/
 !.env.example
 !.env.demo
 supabase/.temp/
+.playwright-cli/

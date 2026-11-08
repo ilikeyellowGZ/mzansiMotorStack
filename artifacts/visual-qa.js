@@ -24,7 +24,7 @@ async page => {
         };
       });
       out.push({route: route.name, ...result});
-      if ([390, 1920, 3440].includes(width)) {
+      if ([390, 1366, 1920, 3440].includes(width)) {
         await page.screenshot({path: `artifacts/previews/${route.name}-${width}-fluid.png`, fullPage: true});
       }
     }
