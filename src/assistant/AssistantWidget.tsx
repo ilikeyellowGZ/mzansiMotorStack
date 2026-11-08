@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Maximize2, MessageCircle, Minimize2, RotateCcw, Send, UserRound, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { hasApprovedLegalNotices } from "../lib/config";
-import { emptyAnswers, formatMoney, normaliseWebsiteUrl, type OnboardingAnswers, type SetupMethod } from "../lib/onboarding";
-import { loadOnboardingDraft, saveOnboardingDraft } from "../lib/onboardingRepository";
-import { askAssistant, submitEnquiry, type Enquiry, type WireMessage } from "./assistantApi";
+import { emptyAnswers, formatMoney, normaliseWebsiteUrl, type SetupMethod } from "../lib/onboarding";
+import { loadOnboardingDraft } from "../lib/onboardingRepository";
+import { askAssistant, saveAssistantSetupChoices, submitEnquiry, type Enquiry, type WireMessage } from "./assistantApi";
 import { loadThread, saveThread, type ChatItem } from "./assistantStorage";
 
 const greeting = "Hi, I’m MotorStack’s AI assistant. I can help you choose a plan or get your dealership set up. What would you like to do?";
@@ -22,12 +22,12 @@ function suggestions(path: string, step: number | null) {
 function isNearBottom(node: HTMLDivElement) {
   return node.scrollHeight - node.scrollTop - node.clientHeight < 72;
 }
+function append(items: ChatItem[], item: ChatItem): ChatItem[] { return [...items, item].slice(-40); }
 
-function SetupPanel({ identity, onDone }: { identity: string; onDone: (message: string) => void }) {
+function SetupPanel({ identity, path, onDone }: { identity: string; path: string; onDone: (message: string) => void }) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
   const [step, setStep] = useState(2);
-  const [base, setBase] = useState<OnboardingAnswers>(emptyAnswers);
   const [website, setWebsite] = useState("");
   const [noWebsite, setNoWebsite] = useState(false);
   const [facebook, setFacebook] = useState("");
@@ -41,7 +41,7 @@ function SetupPanel({ identity, onDone }: { identity: string; onDone: (message: 
     void loadOnboardingDraft().then((draft) => {
       if (!active) return;
       const answers = { ...emptyAnswers, ...draft?.answers };
-      setBase(answers); setStep(draft?.currentStep ?? 2);
+      setStep(draft?.currentStep ?? 2);
       setWebsite(answers.websiteUrl); setNoWebsite(answers.addWebsiteLater);
       setFacebook(answers.socialProfiles.Facebook ?? ""); setInstagram(answers.socialProfiles.Instagram ?? "");
       setSetup(answers.setupMethod); setWebsiteService(answers.websiteOptions); setLoaded(true);
@@ -50,6 +50,7 @@ function SetupPanel({ identity, onDone }: { identity: string; onDone: (message: 
   }, [identity]);
 
   if (identity === "anonymous") return <div className="assistant-context-card"><p>Sign in to save your dealership setup. The ordinary setup form is always available.</p><Link to="/start">Start dealership setup</Link></div>;
+  if (path === "/onboarding") return <div className="assistant-context-card"><p>You are already in the dealership setup form. Continue there so your current edits stay together.</p><Link to="/tutorial">Read the setup guide</Link></div>;
   if (!loaded) return <p className="assistant-context-card" role="status">Checking saved setup…</p>;
   if (error) return <div className="assistant-context-card" role="alert"><p>{error}</p><Link to="/onboarding">Open setup form</Link></div>;
 
@@ -64,24 +65,11 @@ function SetupPanel({ identity, onDone }: { identity: string; onDone: (message: 
   async function save() {
     setSaving(true); setError("");
     try {
-      const latest = await loadOnboardingDraft();
-      const current = { ...emptyAnswers, ...(latest?.answers ?? base) };
-      const socialProfiles = { ...current.socialProfiles };
-      if (facebook.trim()) socialProfiles.Facebook = validUrl(facebook)!; else delete socialProfiles.Facebook;
-      if (instagram.trim()) socialProfiles.Instagram = validUrl(instagram)!; else delete socialProfiles.Instagram;
-      const socialPlatforms: OnboardingAnswers["socialPlatforms"] = [
-        ...current.socialPlatforms.filter((name) => name !== "Facebook" && name !== "Instagram" && name !== "None yet"),
-        ...(facebook.trim() ? ["Facebook" as const] : []),
-        ...(instagram.trim() ? ["Instagram" as const] : []),
-      ];
-      if (!socialPlatforms.length) socialPlatforms.push("None yet");
-      const answers: OnboardingAnswers = {
-        ...current, websiteUrl: noWebsite ? "" : validUrl(website)!, addWebsiteLater: noWebsite,
-        websiteStatus: noWebsite ? (websiteService ? "want_one" : "not_now") : website.trim() ? "happy" : "not_now",
-        websiteOptions: websiteService, socialProfiles, socialPlatforms,
-        setupMethod: setup, meetingFormat: setup === "self_service" ? "" : setup,
-      };
-      await saveOnboardingDraft({ currentStep: Math.max(2, latest?.currentStep ?? step), answers });
+      await saveAssistantSetupChoices({
+        websiteUrl: noWebsite ? "" : validUrl(website)!, noWebsite,
+        facebook: validUrl(facebook)!, instagram: validUrl(instagram)!,
+        setupMethod: setup as SetupMethod, websiteService,
+      });
       onDone("Your website, social and setup choices were saved. Continue in the setup form to complete required details and review your request.");
     } catch { setError("Your choices were not saved. Please retry or use the setup form."); }
     finally { setSaving(false); }
@@ -192,7 +180,7 @@ export default function AssistantWidget({ identity, open, onClose }: { identity:
       const history: WireMessage[] = next.filter((item) => item.id !== "greeting").map(({ role, text }) => ({ role, text }));
       const result = await askAssistant(history, location.pathname, current.signal);
       if (current.signal.aborted) return;
-      setMessages((items) => [...items, { id: crypto.randomUUID(), role: "assistant", text: result.text, sources: result.sources, plan: result.plan }].slice(-40));
+      setMessages((items) => append(items, { id: crypto.randomUUID(), role: "assistant", text: result.text, sources: result.sources, plan: result.plan, setupFees: result.setupFees }));
       if (result.handoff) startEnquiry(/demo|appointment|meeting/i.test(next.at(-1)?.text ?? "") ? "demo" : "person", next);
     } catch (cause) {
       if (!current.signal.aborted) setError(cause instanceof Error ? cause.message : "The assistant is unavailable. Please retry.");
@@ -201,16 +189,21 @@ export default function AssistantWidget({ identity, open, onClose }: { identity:
   function send(value = draft) {
     const text = value.trim(); if (!text || pending) return;
     if (/\b(password|one.time password|otp|api key|bank (account|details)|identity document)\b/i.test(text)) { setError("Please use the secure account or billing screens for sensitive details. Don’t enter them in chat."); return; }
-    const next = [...messages, { id: crypto.randomUUID(), role: "user" as const, text: text.slice(0, 800) }].slice(-40);
+    const next = append(messages, { id: crypto.randomUUID(), role: "user", text: text.slice(0, 800) });
     wasAtBottom.current = true; setMessages(next); setDraft(""); setSetupOpen(false);
-    if (/\b(talk|speak|connect|handoff|human|person|agent|representative)\b/i.test(text) && /\b(person|human|agent|representative|someone|team)\b/i.test(text)) {
-      setMessages([...next, { id: crypto.randomUUID(), role: "assistant", text: "I can pass a reviewed request to the team. Please check the details below before sending it." }].slice(-40));
+    if (/\b(?:talk|speak|connect|handoff)\b.{0,40}\b(?:person|human|agent|representative|someone|team|support)\b|\b(?:human|person|agent|representative)\s+(?:help|support)\b/i.test(text)) {
+      setMessages(append(next, { id: crypto.randomUUID(), role: "assistant", text: "I can pass a reviewed request to the team. Please check the details below before sending it." }));
       startEnquiry("person", next);
       return;
     }
     if (/\b(book|request|schedule)\b.*\b(demo|meeting|appointment)\b/i.test(text)) {
-      setMessages([...next, { id: crypto.randomUUID(), role: "assistant", text: "I can take a demo request. A time is only confirmed when the team follows up." }].slice(-40));
+      setMessages(append(next, { id: crypto.randomUUID(), role: "assistant", text: "I can take a demo request. A time is only confirmed when the team follows up." }));
       startEnquiry("demo", next);
+      return;
+    }
+    if (/\b(?:i want|i need|request|book)\b.{0,50}\b(?:assisted setup|setup help)\b/i.test(text)) {
+      setMessages(append(next, { id: crypto.randomUUID(), role: "assistant", text: identity === "anonymous" ? "I can record a reviewed setup request for the team." : "I can save your setup choices, then the onboarding form will collect the remaining details and review your request." }));
+      if (identity === "anonymous") startEnquiry("assisted_setup", next); else setSetupOpen(true);
       return;
     }
     void respond(next);
@@ -232,7 +225,7 @@ export default function AssistantWidget({ identity, open, onClose }: { identity:
   async function confirmEnquiry() {
     if (!enquiry) return;
     setSendingRequest(true); setError("");
-    try { await submitEnquiry(enquiry); setRequestReceived(true); setMessages((items) => [...items, { id: crypto.randomUUID(), role: "assistant", text: "Your request was received. The team can review it, but no appointment or live chat has been confirmed." }].slice(-40)); }
+    try { await submitEnquiry(enquiry); setRequestReceived(true); setMessages((items) => append(items, { id: crypto.randomUUID(), role: "assistant", text: "Your request was received. The team can review it, but no appointment or live chat has been confirmed." })); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "The request could not be sent. Please retry."); }
     finally { setSendingRequest(false); }
   }
@@ -242,10 +235,11 @@ export default function AssistantWidget({ identity, open, onClose }: { identity:
   function setupSaved(text: string) {
     setSetupOpen(false);
     void loadOnboardingDraft().then((saved) => setOnboardingStep(saved?.currentStep ?? null)).catch(() => setOnboardingStep(null));
-    setMessages((items) => [...items, { id: crypto.randomUUID(), role: "assistant", text, sources: [{ title: "Setup guide", href: "/tutorial" }] }].slice(-40));
+    setMessages((items) => append(items, { id: crypto.randomUUID(), role: "assistant", text, sources: [{ title: "Setup guide", href: "/tutorial" }] }));
   }
 
   return <section ref={panelRef} className={`assistant-panel ${expanded ? "assistant-expanded" : ""} ${open ? "is-open" : ""}`} role="dialog" aria-modal={mobile ? "true" : "false"} aria-label="MotorStack Assistant" hidden={!open}>
+    <span className="sr-only" role="status" aria-live="polite">{pending ? "MotorStack Assistant is thinking" : messages.at(-1)?.role === "assistant" ? messages.at(-1)?.text : ""}</span>
     <header className="assistant-header">
       <span className="assistant-avatar"><img src="/brand/mzansi-road-mark.png" alt="" width="30" height="30" /></span>
       <span className="assistant-title"><strong>MotorStack Assistant</strong><small>Powered by AI</small></span>
@@ -258,7 +252,8 @@ export default function AssistantWidget({ identity, open, onClose }: { identity:
         {item.role === "assistant" && <span className="assistant-message-avatar"><img src="/brand/mzansi-road-mark.png" alt="" width="22" height="22" /></span>}
         <div className="assistant-message-content"><p>{item.text}</p>
           {item.sources?.length ? <div className="assistant-sources">Sources: {item.sources.map((source) => <Link key={source.href} to={source.href}>{source.title}</Link>)}</div> : null}
-          {item.plan && <div className="assistant-plan-card"><span>Suggested starting point</span><strong>{item.plan.name}</strong><b>{formatMoney(item.plan.monthly)} <small>/ month</small></b><p>{item.plan.users} users · {item.plan.support}. {item.plan.ai}.</p><small>Annual: {formatMoney(item.plan.annual)}. VAT and final entitlements require confirmation.</small><Link to="/pricing">Check plan details <ArrowUp size={14} /></Link><Link to={hasApprovedLegalNotices ? "/start" : "/demo"}>{hasApprovedLegalNotices ? "Continue to setup" : "Explore the demo"} <ArrowUp size={14} /></Link></div>}
+          {item.plan && <div className="assistant-plan-card"><span>Suggested starting point</span><strong>{item.plan.name}</strong><b>{formatMoney(item.plan.monthly)} <small>/ month</small></b>{item.plan.reason && <p>{item.plan.reason}</p>}<p>{item.plan.users} users · {item.plan.support}</p><p>AI: {item.plan.ai}</p>{item.plan.website && <p>Website: {item.plan.website}</p>}{item.plan.social && <p>Social: {item.plan.social}</p>}<small>Annual: {formatMoney(item.plan.annual)}. VAT and final entitlements require confirmation.</small><Link to="/pricing">Check plan details <ArrowUp size={14} /></Link><Link to={hasApprovedLegalNotices ? "/start" : "/demo"}>{hasApprovedLegalNotices ? "Continue to setup" : "Explore the demo"} <ArrowUp size={14} /></Link></div>}
+          {item.setupFees?.length ? <div className="assistant-plan-card"><span>Assisted online setup</span>{item.setupFees.map((fee) => <p key={fee.code}><strong>{fee.name}</strong> · {formatMoney(fee.onlineMinor)}</p>)}<small>In-person travel and unsupported imports are quoted separately. Confirm the final quote before checkout.</small><Link to="/pricing">Check setup pricing <ArrowUp size={14} /></Link></div> : null}
         </div>
       </div>)}
       {messages.length === 1 && <div className="assistant-entry-actions">
@@ -267,7 +262,7 @@ export default function AssistantWidget({ identity, open, onClose }: { identity:
         <button type="button" onClick={() => setSetupOpen(true)}>Set up my dealership</button>
       </div>}
       {messages.length > 1 && !enquiry && !setupOpen && <div className="assistant-suggestions" aria-label="Suggested questions">{pageSuggestions.map((question) => <button type="button" key={question} onClick={() => question === "Talk to a person" ? startEnquiry("person") : send(question)}>{question}</button>)}</div>}
-      {setupOpen && <SetupPanel identity={identity} onDone={setupSaved} />}
+      {setupOpen && <SetupPanel identity={identity} path={location.pathname} onDone={setupSaved} />}
       {enquiry && <div className="assistant-context-card assistant-enquiry-card">
         <strong>{enquiry.kind === "demo" ? "Request a demo" : enquiry.kind === "assisted_setup" ? "Request setup help" : "Talk to a person"}</strong>
         {requestReceived ? <p role="status">Request received. This is a request for follow-up; no appointment or live agent is confirmed.</p> : <>

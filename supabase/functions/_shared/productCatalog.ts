@@ -21,6 +21,12 @@ export const planDetails = {
 } as const;
 
 export type PlanCode = keyof typeof planDetails;
+export type SetupMethod = "self_service" | "online" | "in_person";
+
+export function getSetupFee(plan: PlanCode, method: SetupMethod): number {
+  if (method === "self_service") return plan === "managed" ? 450000 : 0;
+  return plan === "essentials" ? 149900 : plan === "growth" ? 299900 : 599900;
+}
 
 export function recommendPlan(teamSize: number | null, managedService: boolean) {
   if (teamSize === null || !Number.isInteger(teamSize) || teamSize < 1) return null;

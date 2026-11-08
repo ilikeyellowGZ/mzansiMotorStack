@@ -2,15 +2,24 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { appMode, supabase } from "../lib/config";
 import type { ChatReply } from "./assistantApi";
 
-export type ChatItem = { id: string; role: "user" | "assistant"; text: string; sources?: ChatReply["sources"]; plan?: ChatReply["plan"] };
-export type AssistantThread = { threadId: string; messages: ChatItem[]; draft: string };
+// The generated Database type reflects the currently deployed schema. Remove
+// this narrow cast after the assistant migration is applied and types regenerate.
+
+export type ChatItem = { id: string; role: "user" | "assistant"; text: string; sources?: ChatReply["sources"]; plan?: ChatReply["plan"]; setupFees?: ChatReply["setupFees"] };
+export type AssistantThread = { threadId: string; messages: ChatItem[]; draft: string; savedAt?: number };
 const prefix = "mzansimotorstack.assistant.v1.";
 export function clearSessionThread(identity: string) { sessionStorage.removeItem(prefix + identity); }
 
 function readSession(identity: string): AssistantThread | null {
   try {
     const raw = sessionStorage.getItem(prefix + identity);
-    return raw ? JSON.parse(raw) as AssistantThread : null;
+    if (!raw) return null;
+    const thread = JSON.parse(raw) as AssistantThread;
+    if (!thread.savedAt || Date.now() - thread.savedAt > 30 * 86400_000) {
+      clearSessionThread(identity);
+      return null;
+    }
+    return thread;
   } catch { return null; }
 }
 
@@ -28,7 +37,7 @@ export async function loadThread(identity: string): Promise<AssistantThread | nu
 }
 
 export async function saveThread(identity: string, thread: AssistantThread) {
-  sessionStorage.setItem(prefix + identity, JSON.stringify({ ...thread, messages: thread.messages.slice(-40) }));
+  sessionStorage.setItem(prefix + identity, JSON.stringify({ ...thread, messages: thread.messages.slice(-40), savedAt: Date.now() }));
   if (identity === "anonymous" || appMode !== "production" || !supabase) return;
   const { data: profile } = await supabase.from("profiles").select("id").maybeSingle();
   if (!profile) return;

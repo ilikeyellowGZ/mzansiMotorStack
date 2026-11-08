@@ -1,8 +1,8 @@
 import type { Json } from "./database.types";
 import { planDetails } from "../../supabase/functions/_shared/productCatalog";
-export { planDetails } from "../../supabase/functions/_shared/productCatalog";
-export type { PlanCode } from "../../supabase/functions/_shared/productCatalog";
-import type { PlanCode } from "../../supabase/functions/_shared/productCatalog";
+export { planDetails, getSetupFee } from "../../supabase/functions/_shared/productCatalog";
+export type { PlanCode, SetupMethod } from "../../supabase/functions/_shared/productCatalog";
+import type { PlanCode, SetupMethod } from "../../supabase/functions/_shared/productCatalog";
 
 const zarFormatter = new Intl.NumberFormat("en-ZA", {
   style: "currency",
@@ -12,7 +12,6 @@ const zarFormatter = new Intl.NumberFormat("en-ZA", {
 });
 
 export type BillingInterval = "monthly" | "annual";
-export type SetupMethod = "self_service" | "online" | "in_person";
 export type SocialPlatform =
   | "Facebook"
   | "Instagram"
@@ -97,11 +96,6 @@ export const emptyAnswers: OnboardingAnswers = {
   appointmentAddress: "",
   appointmentNotes: "",
 };
-
-export function getSetupFee(plan: PlanCode, method: SetupMethod): number {
-  if (method === "self_service") return plan === "managed" ? 450000 : 0;
-  return plan === "essentials" ? 149900 : plan === "growth" ? 299900 : 599900;
-}
 
 export function getSetupScope(plan: PlanCode, method: SetupMethod) {
   const exclusions = [

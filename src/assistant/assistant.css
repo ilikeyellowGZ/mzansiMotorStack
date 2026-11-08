@@ -101,8 +101,12 @@
   .assistant-host { left: max(12px, env(safe-area-inset-left)); bottom: max(12px, env(safe-area-inset-bottom)); }
   .assistant-panel, .assistant-panel.assistant-expanded { position: fixed; inset: 0; width: 100vw; height: 100dvh; max-height: none; border: 0; border-radius: 0; }
   .assistant-header { padding-top: max(12px, env(safe-area-inset-top)); height: calc(72px + env(safe-area-inset-top)); min-height: calc(72px + env(safe-area-inset-top)); }
+  .assistant-header-button { width: 44px; height: 44px; }
   .assistant-bottom { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
   .assistant-entry-actions button, .assistant-suggestions button, .assistant-context-card button { min-height: 44px; }
-  .assistant-help-row button { min-height: 40px; }
+  .assistant-help-row button, .assistant-context-card :is(input:not([type="checkbox"]), select, textarea) { min-height: 44px; }
+  .assistant-composer { min-height: 52px; }
+  .assistant-composer textarea { min-height: 42px; }
+  .assistant-composer button { width: 44px; height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) { .assistant-launcher { transition: none; } }
